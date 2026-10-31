@@ -9,7 +9,7 @@ const statusLabels = {
   under_review: 'قيد المراجعة', approved: 'معتمد', rejected: 'مرفوض', closed: 'مغلق'
 }
 
-export default function PeriodicAudits({ profile, branches, isCentral, onNotice, onError }) {
+export default function PeriodicAudits({ profile, branches, isCentral, canReview = isCentral, onNotice, onError }) {
   const [audits, setAudits] = useState([])
   const [selected, setSelected] = useState(null)
   const [auditItems, setAuditItems] = useState([])
@@ -27,12 +27,12 @@ export default function PeriodicAudits({ profile, branches, isCentral, onNotice,
     let query = supabase.from('inventory_audits')
       .select('id, branch_id, title, audit_date, status, notes, created_at, submitted_at, reviewed_at, branches!inventory_audits_branch_id_fkey(name)')
       .order('created_at', { ascending: false })
-    if (!isCentral) query = query.eq('branch_id', profile.branch_id)
+    if (!canReview) query = query.eq('branch_id', profile.branch_id)
     const { data, error } = await query
     if (error) onError(error.message)
     else setAudits(data || [])
     setLoading(false)
-  }, [isCentral, profile?.branch_id, onError])
+  }, [canReview, profile?.branch_id, onError])
 
   useEffect(() => { if (profile?.id) loadAudits() }, [profile?.id, loadAudits])
 
@@ -151,7 +151,7 @@ export default function PeriodicAudits({ profile, branches, isCentral, onNotice,
   return <section className="panel audit-panel">
     <div className="panel-heading"><div><h3><ClipboardCheck size={20}/> الجرد الدوري</h3><p>جلسات جرد موثقة لكل فرع مع مراجعة واعتماد مركزي</p></div><button className="button button-light" onClick={loadAudits}><RefreshCw size={16}/> تحديث</button></div>
     {!selected ? <>
-      <form className="audit-create" onSubmit={createAudit}>
+      {isCentral && <form className="audit-create" onSubmit={createAudit}>
         <div className="audit-form-heading"><div><strong>إنشاء جلسة جرد جديدة</strong><small>سيتم أخذ لقطة بالكميات الحالية عند بدء الجرد.</small></div><CalendarDays size={22}/></div>
         <div className="audit-create-grid">
           {isCentral && <label className="field">الفرع<select required value={branchId} onChange={e=>setBranchId(e.target.value)}><option value="">اختر الفرع</option>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></label>}
@@ -160,7 +160,7 @@ export default function PeriodicAudits({ profile, branches, isCentral, onNotice,
           <label className="field audit-notes">ملاحظات<textarea rows="2" value={notes} onChange={e=>setNotes(e.target.value)} placeholder="ملاحظات أو نطاق الجرد..."/></label>
         </div>
         <button className="button button-primary" disabled={creating}>{creating ? 'جارٍ تجهيز الجرد...' : <><Plus size={17}/> إنشاء جلسة الجرد</>}</button>
-      </form>
+      </form>}
       <div className="audit-list-heading"><strong>سجل جلسات الجرد</strong><span>{audits.length} جلسة</span></div>
       <div className="audit-list">
         {loading ? <div className="empty-state">جارٍ تحميل جلسات الجرد...</div> : audits.length === 0 ? <div className="empty-state">لا توجد جلسات جرد حتى الآن.</div> : audits.map(audit=><button className="audit-list-row" key={audit.id} onClick={()=>openAudit(audit.id)}>
@@ -188,8 +188,8 @@ export default function PeriodicAudits({ profile, branches, isCentral, onNotice,
       </div>
       <div className="audit-actions">
         {editable && <button className="button button-primary" disabled={completeCount!==auditItems.length || auditItems.length===0} onClick={()=>changeStatus('submitted')}><Send size={16}/> إرسال للمراجعة المركزية</button>}
-        {isCentral && selected.status==='submitted' && <><button className="button button-primary" onClick={()=>changeStatus('approved')}><CheckCircle2 size={16}/> اعتماد الجرد</button><button className="button button-danger" onClick={()=>changeStatus('rejected')}><X size={16}/> رفض وإعادة للمسؤول</button></>}
-        {isCentral && selected.status==='approved' && <button className="button button-light" onClick={()=>changeStatus('closed')}>إغلاق الجلسة</button>}
+        {canReview && selected.status==='submitted' && <><button className="button button-primary" onClick={()=>changeStatus('approved')}><CheckCircle2 size={16}/> اعتماد الجرد</button><button className="button button-danger" onClick={()=>changeStatus('rejected')}><X size={16}/> رفض وإعادة للمسؤول</button></>}
+        {canReview && selected.status==='approved' && <button className="button button-light" onClick={()=>changeStatus('closed')}>إغلاق الجلسة</button>}
         <small>اعتماد الجرد لا يغيّر أرصدة المخزون تلقائيًا؛ الفروق تُراجع قبل أي تسوية.</small>
       </div>
     </>}
