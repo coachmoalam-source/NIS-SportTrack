@@ -79,3 +79,147 @@
  .sport-ball,.sport-trophy{font-size:25px}
  .login-card{padding:27px 21px}
 }
+
+
+/* ===== Full application redesign: NIS SportTrack ===== */
+.app-shell{
+  direction:rtl;min-height:100vh;
+  color:#eef3fb;
+  background:radial-gradient(ellipse at 85% 0%,#142d50 0%,transparent 36%),#07152b;
+}
+.app-shell .sidebar{
+  width:270px;min-height:100vh;padding:30px 20px;
+  background:linear-gradient(180deg,#0b2040 0%,#07152d 100%);
+  border-left:1px solid #263b5c;border-right:0;
+  box-shadow:12px 0 35px #020a1833;
+}
+.app-shell .brand{padding:0 5px 38px;border-bottom:1px solid #263957;margin-bottom:26px}
+.app-shell .brand-mark{width:48px;height:48px;border:1px solid #e7bf68;box-shadow:0 7px 20px #d5a13e30}
+.app-shell .brand strong{font-size:17px;letter-spacing:.1px}
+.app-shell .brand small{font-size:10px;letter-spacing:.7px;color:#9aacc6}
+.app-shell .side-label{color:#8195b4;font-size:10px;font-weight:800;letter-spacing:1px}
+.app-shell .nav-item{position:relative;min-height:47px;padding:12px 14px;border:1px solid transparent;color:#b7c5da;border-radius:11px;font-size:12px;transition:.2s}
+.app-shell .nav-item:hover{background:#142b4b;color:#fff;border-color:#2b4265}
+.app-shell .nav-item.active{background:linear-gradient(100deg,#8f1d30,#b72a3c);color:#fff;border:1px solid #d15a60;box-shadow:0 8px 22px #8f1d303d,inset 0 1px #ffffff20}
+.app-shell .nav-item.active:after{content:"";position:absolute;right:-20px;top:10px;height:27px;width:3px;border-radius:3px;background:#e9c36b}
+.app-shell .soon{color:#f0c96d}
+.app-shell .sidebar-bottom{border-color:#263957;color:#a6b5ca;line-height:1.8}
+.app-shell .sidebar-bottom svg{color:#e4b75c}
+.app-shell .main-content{padding:30px clamp(18px,3vw,44px);background:transparent}
+.app-shell .topbar{border-bottom:1px solid #263957;padding-bottom:23px}
+.app-shell .topbar h1{color:#f4f6fb;font-size:23px}
+.app-shell .eyebrow{color:#e3b75c;letter-spacing:1.7px}
+.app-shell .user-area{gap:12px}
+.app-shell .avatar{width:42px;height:42px;background:#182f50;border:1px solid #385174;color:#e9c16c}
+.app-shell .user-copy strong{color:#f0f4fa;font-size:12px}
+.app-shell .user-copy small{color:#91a2bd}
+.app-shell .icon-button{color:#b8c5d8}
+.app-shell .icon-button:hover{background:#1b3150;color:#fff}
+.app-shell .welcome-row{margin:30px 0 22px}
+.app-shell .welcome-row h2{font-size:20px;color:#f4f6fb}
+.app-shell .welcome-row p,.app-shell .panel-heading p{color:#98a9c1;font-size:11px}
+.app-shell .button{border-radius:10px;min-height:39px}
+.app-shell .button-primary{background:linear-gradient(110deg,#d4a447,#f0cf7a);color:#101f38;border:1px solid #f2d68d;box-shadow:0 7px 20px #d5a13e25;font-weight:800}
+.app-shell .button-primary:hover{background:linear-gradient(110deg,#e4b85c,#f7df9c);transform:translateY(-1px)}
+.app-shell .button-light{background:#172c4a;color:#dce5f2;border:1px solid #304765}
+.app-shell .button-light:hover{background:#203a5e;color:#fff}
+.app-shell .stats-grid{gap:14px;margin-bottom:22px}
+.app-shell .stat-card{
+  position:relative;overflow:hidden;min-height:100px;padding:17px;
+  background:linear-gradient(145deg,#142b4b,#0f2340);
+  border:1px solid #2a4262;border-radius:15px;
+  box-shadow:0 8px 22px #020a1828;
+}
+.app-shell .stat-card:after{content:"";position:absolute;width:75px;height:75px;border:1px solid #ffffff0b;border-radius:50%;left:-24px;bottom:-37px}
+.app-shell .stat-card span{color:#9eafc7;font-size:10px}
+.app-shell .stat-card strong{color:#fff;font-size:23px}
+.app-shell .stat-icon{width:42px;height:42px;border-radius:12px;background:#203a5e;color:#e4bd68;border:1px solid #385174}
+.app-shell .stat-icon.warning{background:#45371f;color:#f0c56a;border-color:#6d5528}
+.app-shell .stat-icon.danger{background:#482632;color:#ef8b91;border-color:#703541}
+.app-shell .panel{
+  padding:22px;background:linear-gradient(145deg,#112744,#0d203a);
+  border:1px solid #2b4261;border-radius:16px;
+  box-shadow:0 14px 38px #020a1833;
+}
+.app-shell .panel-heading{padding-bottom:17px;border-bottom:1px solid #263b58}
+.app-shell .panel-heading h3{font-size:16px;color:#f4f6fb}
+.app-shell .filters{margin:17px 0}
+.app-shell .search-box,.app-shell .select-wrap{
+  height:44px;background:#0a1b33;border:1px solid #304765;color:#9eafc7;border-radius:10px;
+}
+.app-shell .search-box:focus-within,.app-shell .select-wrap:focus-within{border-color:#cda34f;box-shadow:0 0 0 3px #cda34f18}
+.app-shell .search-box input,.app-shell .select-wrap select{background:transparent;color:#e7edf7;font-size:11px}
+.app-shell .search-box input::placeholder{color:#7185a2}
+.app-shell .select-wrap select option{background:#102542;color:#fff}
+.app-shell table{border-collapse:separate;border-spacing:0;min-width:850px}
+.app-shell th{background:#1a3151;color:#aebdd1;padding:14px 12px;font-size:10px;border-top:1px solid #304765;border-bottom:1px solid #304765}
+.app-shell th:first-child{border-radius:0 9px 0 0}
+.app-shell th:last-child{border-radius:9px 0 0 0}
+.app-shell td{background:#102541;color:#c5d0df;border-bottom:1px solid #263b58;padding:13px 12px;font-size:11px}
+.app-shell tbody tr:hover td{background:#183252}
+.app-shell .item-cell strong{color:#f0f4fa;font-size:11px}
+.app-shell .item-cell small{color:#8fa2bd}
+.app-shell .item-cell img,.app-shell .item-placeholder{background:#1d3657;border:1px solid #344e70}
+.app-shell .item-placeholder{color:#c6a45e}
+.app-shell .numeric{color:#e8edf6}
+.app-shell .number-pill.warning{background:#4a3b20;color:#f2ca70;border:1px solid #705728}
+.app-shell .number-pill.danger{background:#492733;color:#f29aa0;border:1px solid #713b49}
+.app-shell .available{color:#e4bd68}
+.app-shell .small-action{background:#203958;color:#d7e1ef;border:1px solid #385273}
+.app-shell .small-action:hover{background:#2b4b72}
+.app-shell .danger-action{background:#472632;color:#f19ba0;border-color:#713d49}
+.app-shell .empty-state{background:#102541;color:#9bacc3;height:170px}
+.app-shell .empty-state strong{color:#e7edf6}
+.app-shell .empty-state span{color:#91a3bc}
+.app-shell .table-footer{color:#91a3bc;align-items:center;gap:12px;flex-wrap:wrap}
+.app-shell .pagination{display:flex;align-items:center;gap:9px}
+.app-shell .pagination span{color:#dce5f2}
+.app-shell .footer{color:#7185a2;padding:24px}
+.app-shell .footer span{color:#d8ad56}
+.app-shell .alert-error{background:#482632;color:#ffb0b2;border:1px solid #783b4b}
+.app-shell .alert-success{background:#173d39;color:#a6e2c8;border:1px solid #286657}
+.app-shell .alert button{color:inherit}
+.app-shell .modal-backdrop{background:#020918c9;backdrop-filter:blur(7px)}
+.app-shell .modal{background:#102541;color:#edf2fa;border:1px solid #385174;box-shadow:0 25px 90px #0009}
+.app-shell .modal-heading{border-bottom:1px solid #2a4262;padding-bottom:15px}
+.app-shell .modal-heading h3{color:#f4f6fb}
+.app-shell .modal-heading p{color:#9aacc5}
+.app-shell .field{color:#cbd6e5}
+.app-shell .field input,.app-shell .field select,.app-shell .field textarea{
+  background:#091b33;color:#eef3fb;border:1px solid #354d6d;border-radius:9px;
+}
+.app-shell .field input::placeholder,.app-shell .field textarea::placeholder{color:#7488a5}
+.app-shell .field input:focus,.app-shell .field select:focus,.app-shell .field textarea:focus{border-color:#d2a64e;box-shadow:0 0 0 3px #d2a64e1c}
+.app-shell .field select option{background:#102541;color:#fff}
+.app-shell .modal-actions{border-color:#2a4262}
+@media(max-width:1100px){
+ .app-shell .sidebar{width:235px}
+ .app-shell .stats-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:760px){
+ .app-shell{display:block}
+ .app-shell .sidebar{display:none}
+ .app-shell .main-content{padding:17px 12px}
+ .app-shell .topbar{align-items:center;gap:8px}
+ .app-shell .topbar h1{font-size:16px}
+ .app-shell .welcome-row{align-items:flex-start;gap:10px;margin:22px 0 17px}
+ .app-shell .welcome-row h2{font-size:15px}
+ .app-shell .welcome-row p{font-size:10px;max-width:210px}
+ .app-shell .welcome-row .button{font-size:10px;padding:8px 10px;white-space:nowrap}
+ .app-shell .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .app-shell .stat-card{min-height:83px;padding:11px;gap:8px}
+ .app-shell .stat-card strong{font-size:19px}
+ .app-shell .stat-card span{font-size:9px}
+ .app-shell .stat-icon{width:34px;height:34px}
+ .app-shell .panel{padding:13px}
+ .app-shell .panel-heading{gap:8px;align-items:center}
+ .app-shell .panel-heading h3{font-size:13px}
+ .app-shell .panel-heading .button{font-size:9px;padding:7px 9px}
+ .app-shell .filters{gap:8px}
+ .app-shell .search-box{flex-basis:100%}
+ .app-shell .select-wrap{flex:1;min-width:0}
+ .app-shell .select-wrap select{min-width:0;width:100%}
+ .app-shell .table-footer{font-size:9px}
+ .app-shell .pagination{width:100%;justify-content:space-between}
+ .app-shell .modal{max-height:94vh}
+}
