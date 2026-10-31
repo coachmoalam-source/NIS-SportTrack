@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  Activity, AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Boxes,
+  Activity, AlertTriangle, Wrench, ArrowDownToLine, ArrowUpFromLine, Boxes,
   Building2, CheckCircle2, ChevronDown, CircleUserRound, ClipboardList,
   LogOut, Package, Plus, RefreshCw, Search, ShieldCheck, Trash2, X
 } from 'lucide-react'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
 import PeriodicAudits from './components/PeriodicAudits'
+import DamageMaintenance from './components/DamageMaintenance'
 
 const BRANCHES = ['El Shorouk', 'O West', 'New Capital', 'El Tagamoa', 'Porto Said']
 const emptyForm = { item_code: '', item_name: '', category: '', quantity: 0, damaged_quantity: 0, missing_quantity: 0, unit: 'قطعة', image_url: '', notes: '' }
@@ -427,6 +428,7 @@ function App() {
         <div className="side-label">القائمة الرئيسية</div>
         <button className={activeSection === 'inventory' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('inventory')}><ClipboardList size={18}/> إدارة المخزون</button>
         <button className={activeSection === 'audits' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('audits')}><Activity size={18}/> الجرد الدوري</button>
+        <button className={activeSection === 'services' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('services')}><Wrench size={18}/> الصيانة والتالف</button>
         <div className="nav-item"><Building2 size={18}/> الفروع</div>
         <div className="sidebar-bottom"><ShieldCheck size={17}/><span>نظام متابعة مركزي للفروع</span></div>
       </aside>
@@ -438,7 +440,7 @@ function App() {
         </header>
 
         <section className="welcome-row">
-          <div><h2>{activeSection === 'inventory' ? 'لوحة متابعة المخزون' : 'إدارة الجرد الدوري'}</h2><p>{activeSection === 'inventory' ? 'متابعة الكميات والمتاح والتالف والمفقود في فروع NIS.' : 'تنظيم جلسات الجرد وتوثيق النتائج ومراجعتها مركزيًا.'}</p></div>
+          <div><h2>{activeSection === 'inventory' ? 'لوحة متابعة المخزون' : activeSection === 'audits' ? 'إدارة الجرد الدوري' : 'إدارة الصيانة والتالف والمفقود'}</h2><p>{activeSection === 'inventory' ? 'متابعة الكميات والمتاح والتالف والمفقود في فروع NIS.' : activeSection === 'audits' ? 'تنظيم جلسات الجرد وتوثيق النتائج ومراجعتها مركزيًا.' : 'تسجيل بلاغات التلف والفقد وطلبات الصيانة ومتابعتها.'}</p></div>
           {activeSection === 'inventory' && <button className="button button-primary" onClick={openNew} disabled={!canManage}><Plus size={18}/> إضافة صنف جديد</button>}
         </section>
 
@@ -485,6 +487,7 @@ function App() {
         </section>
         </>}
         {activeSection === 'audits' && <PeriodicAudits profile={profile} branches={branches} isCentral={isCentral} onNotice={setNotice} onError={setError}/>}
+        {activeSection === 'services' && <DamageMaintenance profile={profile} branches={branches} isCentral={isCentral} onNotice={setNotice} onError={setError}/ >}
         <footer className="footer">NIS SportTrack <span>•</span> Physical Education Department</footer>
       </main>
 
