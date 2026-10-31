@@ -42,7 +42,7 @@ cp .env.example .env.local
 
 ```env
 VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
-VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY
+VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY
 ```
 
 ثم:
@@ -65,7 +65,7 @@ npm run build
 
 أضف متغيري البيئة التاليين في Cloudflare Pages > Settings > Environment variables لكل من Production وPreview:
 - `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
 
 ## ملاحظات أمنية وحدود النسخة الحالية
 - لا تضع مفتاح `service_role` أو أي مفتاح سري داخل كود الواجهة أو متغيرات `VITE_*`.
