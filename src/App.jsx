@@ -69,6 +69,7 @@ function App() {
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState('')
   const [activeSection, setActiveSection] = useState('inventory')
+  const [inventoryFocus, setInventoryFocus] = useState('all')
 
   const isCentral = profile?.role === 'super_admin'
   const canManage = isCentral || profile?.role === 'branch_manager'
@@ -217,8 +218,10 @@ function App() {
       .some(value => String(value || '').toLowerCase().includes(term))
     const matchesBranch = branchFilter === 'all' || item.branch_id === branchFilter
     const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter
-    return matchesSearch && matchesBranch && matchesCategory
-  }), [items, search, branchFilter, categoryFilter])
+    const available = Math.max(0, number(item.quantity) - number(item.damaged_quantity) - number(item.missing_quantity))
+    const matchesFocus = inventoryFocus === 'all' || (inventoryFocus === 'damaged' && number(item.damaged_quantity) > 0) || (inventoryFocus === 'missing' && number(item.missing_quantity) > 0) || (inventoryFocus === 'available' && available > 0)
+    return matchesSearch && matchesBranch && matchesCategory && matchesFocus
+  }), [items, search, branchFilter, categoryFilter, inventoryFocus])
 
   const categories = [...new Set(items.map(item => item.category).filter(Boolean))]
 
@@ -429,7 +432,7 @@ function App() {
         <button className={activeSection === 'inventory' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('inventory')}><ClipboardList size={18}/> إدارة المخزون</button>
         <button className={activeSection === 'audits' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('audits')}><Activity size={18}/> الجرد الدوري</button>
         <button className={activeSection === 'services' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('services')}><Wrench size={18}/> الصيانة والتالف</button>
-        <div className="nav-item"><Building2 size={18}/> الفروع</div>
+        <button className={activeSection === 'branches' ? 'nav-item active' : 'nav-item'} onClick={() => { setActiveSection('inventory'); setBranchFilter('all'); setPage(0); setInventoryFocus('all'); loadData(session, 0, 'all') }}><Building2 size={18}/> الفروع</button>
         <div className="sidebar-bottom"><ShieldCheck size={17}/><span>نظام متابعة مركزي للفروع</span></div>
       </aside>
 
@@ -449,15 +452,15 @@ function App() {
 
         {activeSection === 'inventory' && <>
         <section className="stats-grid">
-          <Stat icon={<Package/>} label="إجمالي الأصناف" value={inventoryTotals.items}/>
-          <Stat icon={<Boxes/>} label="إجمالي الكمية" value={inventoryTotals.quantity}/>
-          <Stat icon={<CheckCircle2/>} label="إجمالي المتاح" value={inventoryTotals.available}/>
-          <Stat icon={<AlertTriangle/>} label="إجمالي التالف" value={inventoryTotals.damaged} tone="warning"/>
-          <Stat icon={<Trash2/>} label="إجمالي المفقود" value={inventoryTotals.missing} tone="danger"/>
+          <Stat icon={<Package/>} label="إجمالي الأصناف" value={inventoryTotals.items} onClick={() => { setActiveSection('inventory'); setInventoryFocus('all') }}/>
+          <Stat icon={<Boxes/>} label="إجمالي الكمية" value={inventoryTotals.quantity} onClick={() => { setActiveSection('inventory'); setInventoryFocus('all') }}/>
+          <Stat icon={<CheckCircle2/>} label="إجمالي المتاح" value={inventoryTotals.available} onClick={() => { setActiveSection('inventory'); setInventoryFocus('available') }}/>
+          <Stat icon={<AlertTriangle/>} label="إجمالي التالف" value={inventoryTotals.damaged} tone="warning" onClick={() => { setActiveSection('inventory'); setInventoryFocus('damaged') }}/>
+          <Stat icon={<Trash2/>} label="إجمالي المفقود" value={inventoryTotals.missing} tone="danger" onClick={() => { setActiveSection('inventory'); setInventoryFocus('missing') }}/>
         </section>
 
         <section className="panel">
-          <div className="panel-heading"><div><h3>سجل الأدوات</h3><p>بيانات الجرد حسب الفرع</p></div><button className="button button-light" onClick={() => loadData(session, page, branchFilter)}><RefreshCw size={16}/> تحديث البيانات</button></div>
+          <div className="panel-heading"><div><h3>سجل الأدوات</h3><p>بيانات الجرد حسب الفرع {inventoryFocus !== 'all' && <button className="inline-clear-filter" onClick={() => setInventoryFocus('all')}>إلغاء التصفية ×</button>}</p></div><button className="button button-light" onClick={() => loadData(session, page, branchFilter)}><RefreshCw size={16}/> تحديث البيانات</button></div>
           <div className="filters">
             <label className="search-box"><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="ابحث باسم الصنف أو الكود في جميع السجلات..."/></label>
             {isCentral && <label className="select-wrap"><Building2 size={17}/><select value={branchFilter} onChange={e => { const next = e.target.value; setBranchFilter(next); setPage(0); loadData(session, 0, next) }}><option value="all">كل الفروع</option>{branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select><ChevronDown size={15}/></label>}
@@ -483,7 +486,7 @@ function App() {
               </tbody>
             </table>
           </div>
-          <div className="table-footer"><span>المعروض {items.length} من إجمالي {totalRows} سجلًا — البحث والتصنيف ضمن الصفحة الحالية</span><div className="pagination"><button className="button button-light" disabled={page === 0 || loading} onClick={() => { const next = page - 1; setPage(next); loadData(session, next, branchFilter) }}>السابق</button><span>صفحة {page + 1}</span><button className="button button-light" disabled={!hasMore || loading} onClick={() => { const next = page + 1; setPage(next); loadData(session, next, branchFilter) }}>التالي</button></div></div>
+          <div className="table-footer"><span>{inventoryFocus !== 'all' ? `عرض ${inventoryFocus === 'available' ? 'الأدوات المتاحة' : inventoryFocus === 'damaged' ? 'الأدوات التالفة' : 'الأدوات المفقودة'} — ` : ''}المعروض {filteredItems.length} من إجمالي {totalRows} سجلًا — البحث والتصنيف ضمن الصفحة الحالية</span><div className="pagination"><button className="button button-light" disabled={page === 0 || loading} onClick={() => { const next = page - 1; setPage(next); loadData(session, next, branchFilter) }}>السابق</button><span>صفحة {page + 1}</span><button className="button button-light" disabled={!hasMore || loading} onClick={() => { const next = page + 1; setPage(next); loadData(session, next, branchFilter) }}>التالي</button></div></div>
         </section>
         </>}
         {activeSection === 'audits' && <PeriodicAudits profile={profile} branches={branches} isCentral={isCentral} onNotice={setNotice} onError={setError}/>}
@@ -511,8 +514,8 @@ function App() {
   )
 }
 
-function Stat({ icon, label, value, tone='' }) {
-  return <div className="stat-card"><div className={`stat-icon ${tone}`}>{icon}</div><div><span>{label}</span><strong>{value.toLocaleString('en-US')}</strong></div></div>
+function Stat({ icon, label, value, tone='', onClick }) {
+  return <button type="button" className="stat-card stat-card-clickable" onClick={onClick} title={`عرض ${label}`}><div className={`stat-icon ${tone}`}>{icon}</div><div><span>{label}</span><strong>{value.toLocaleString('en-US')}</strong></div><span className="stat-open-hint">عرض التفاصيل ←</span></button>
 }
 
 function LoginScreen({ email, setEmail, password, setPassword, onSubmit, loading, error }) {
