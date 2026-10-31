@@ -353,3 +353,4 @@ function SetupScreen() {
 
 export default App
 // Cloudflare Pages production build trigger.
+// Deployment path filter is enabled for all repository files.
