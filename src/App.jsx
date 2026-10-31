@@ -78,7 +78,13 @@ function App() {
   const [visibleColumns, setVisibleColumns] = useState(['item','branch','category','quantity','damaged','missing','available','updated'])
   const [sortConfig, setSortConfig] = useState({ key: 'item_name', direction: 'asc' })
 
-  useEffect(() => {\n    const syncLanguage = () => setLanguage(localStorage.getItem('nis-language') || 'ar')\n    window.addEventListener('nis-language-change', syncLanguage)\n    return () => window.removeEventListener('nis-language-change', syncLanguage)\n  }, [])\n\n  const isCentral = profile?.role === 'super_admin'
+  useEffect(() => {
+    const syncLanguage = () => setLanguage(localStorage.getItem('nis-language') || 'ar')
+    window.addEventListener('nis-language-change', syncLanguage)
+    return () => window.removeEventListener('nis-language-change', syncLanguage)
+  }, [])
+
+  const isCentral = profile?.role === 'super_admin'
   const canManage = isCentral || profile?.role === 'branch_manager'
   const ownBranchId = profile?.branch_id
 
@@ -272,7 +278,8 @@ function App() {
       updated: formatDate(item.updated_at)
     }[key])
     const escapeCsv = value => '"' + String(value ?? '').replace(/"/g,'""') + '"'
-    const csv = '\uFEFF' + [columns.map(col=>escapeCsv(col.label)).join(','), ...sortedFilteredItems.map(item=>columns.map(col=>escapeCsv(valueFor(item,col.key))).join(','))].join('\r\n')
+    const csv = '\uFEFF' + [columns.map(col=>escapeCsv(col.label)).join(','), ...sortedFilteredItems.map(item=>columns.map(col=>escapeCsv(valueFor(item,col.key))).join(','))].join('\r
+')
     const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'})
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -493,7 +500,8 @@ function App() {
           <button className={activeSection === 'comparison' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('comparison')}><Building2 size={18}/> مقارنة الفروع</button>
           <button className={activeSection === 'reports' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('reports')}><ClipboardList size={18}/> تقارير الفروع</button>
         </>}
-        <button className={activeSection === 'settings' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('settings')}><ShieldCheck size={18}/> {t('الإعدادات','Settings')}</button>\n        <button className={activeSection === 'branches' ? 'nav-item active' : 'nav-item'} onClick={() => { setActiveSection('inventory'); setBranchFilter('all'); setPage(0); setInventoryFocus('all'); loadData(session, 0, 'all') }}><Building2 size={18}/> الفروع</button>
+        <button className={activeSection === 'settings' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('settings')}><ShieldCheck size={18}/> {t('الإعدادات','Settings')}</button>
+        <button className={activeSection === 'branches' ? 'nav-item active' : 'nav-item'} onClick={() => { setActiveSection('inventory'); setBranchFilter('all'); setPage(0); setInventoryFocus('all'); loadData(session, 0, 'all') }}><Building2 size={18}/> الفروع</button>
         <div className="sidebar-bottom"><ShieldCheck size={17}/><span>نظام متابعة مركزي للفروع</span></div>
       </aside>
 
@@ -572,7 +580,8 @@ function App() {
         {activeSection === 'audits' && <PeriodicAudits profile={profile} branches={branches} isCentral={isCentral} onNotice={setNotice} onError={setError}/>}
         {activeSection === 'services' && <DamageMaintenance profile={profile} branches={branches} isCentral={isCentral} onNotice={setNotice} onError={setError}/>}
         {activeSection === 'comparison' && isCentral && <BranchComparison branches={branches} onError={setError}/ >}
-        {activeSection === 'reports' && isCentral && <InventoryReports branches={branches} onError={setError}/ >}\n        {activeSection === 'settings' && <Settings session={session} profile={profile} isCentral={isCentral} onError={setError} onNotice={setNotice} onProfileUpdated={setProfile}/ >}
+        {activeSection === 'reports' && isCentral && <InventoryReports branches={branches} onError={setError}/ >}
+        {activeSection === 'settings' && <Settings session={session} profile={profile} isCentral={isCentral} onError={setError} onNotice={setNotice} onProfileUpdated={setProfile}/ >}
         <footer className="footer">NIS SportTrack <span>•</span> Physical Education Department</footer>
       </main>
 
