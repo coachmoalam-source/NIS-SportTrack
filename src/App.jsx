@@ -492,27 +492,27 @@ function App() {
       <aside className="sidebar">
         <div className="brand"><div className="brand-mark"><Boxes size={25}/></div><div><strong>NIS SportTrack</strong><small>PE Inventory Management</small></div></div>
         <div className="side-label">{t('القائمة الرئيسية','MAIN MENU')}</div>
-        <button className={activeSection === 'inventory' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('inventory')}><ClipboardList size={18}/> إدارة المخزون</button>
-        <button className={activeSection === 'audits' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('audits')}><Activity size={18}/> الجرد الدوري</button>
-        <button className={activeSection === 'services' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('services')}><Wrench size={18}/> الصيانة والتالف</button>
+        <button className={activeSection === 'inventory' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('inventory')}><ClipboardList size={18}/> {t('إدارة المخزون','Inventory')}</button>
+        <button className={activeSection === 'audits' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('audits')}><Activity size={18}/> {t('الجرد الدوري','Periodic Audits')}</button>
+        <button className={activeSection === 'services' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('services')}><Wrench size={18}/> {t('الصيانة والتالف','Maintenance & Damage')}</button>
         {isCentral && <>
-          <button className={activeSection === 'comparison' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('comparison')}><Building2 size={18}/> مقارنة الفروع</button>
-          <button className={activeSection === 'reports' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('reports')}><ClipboardList size={18}/> تقارير الفروع</button>
+          <button className={activeSection === 'comparison' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('comparison')}><Building2 size={18}/> {t('مقارنة الفروع','Branch Comparison')}</button>
+          <button className={activeSection === 'reports' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('reports')}><ClipboardList size={18}/> {t('تقارير الفروع','Branch Reports')}</button>
         </>}
         <button className={activeSection === 'settings' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('settings')}><ShieldCheck size={18}/> {t('الإعدادات','Settings')}</button>
         <button className={activeSection === 'branches' ? 'nav-item active' : 'nav-item'} onClick={() => { setActiveSection('inventory'); setBranchFilter('all'); setPage(0); setInventoryFocus('all'); loadData(session, 0, 'all') }}><Building2 size={18}/> الفروع</button>
-        <div className="sidebar-bottom"><ShieldCheck size={17}/><span>نظام متابعة مركزي للفروع</span></div>
+        <div className="sidebar-bottom"><ShieldCheck size={17}/><span>{t('نظام متابعة مركزي للفروع','Central Branch Management')}</span></div>
       </aside>
 
       <main className="main-content">
         <header className="topbar">
-          <div><div className="eyebrow">NIS • PHYSICAL EDUCATION</div><h1>{t('إدارة أدوات التربية الرياضية','PE Equipment Management')}</h1></div>
+          <div><div className="eyebrow">NIS • PHYSICAL EDUCATION</div><h1>{t('{t('إدارة أدوات التربية الرياضية','PE Equipment Management')}','PE Equipment Management')}</h1></div>
           <div className="user-area"><div className="avatar"><CircleUserRound size={21}/></div><div className="user-copy"><strong>{profile?.full_name || session.user.email}</strong><small>{isCentral ? t('مسؤول مركزي','Central Administrator') : t('مسؤول فرع','Branch Administrator')}</small></div><button className="icon-button" onClick={signOut} title="تسجيل الخروج"><LogOut size={18}/></button></div>
         </header>
 
         <section className="welcome-row">
-          <div><h2>{activeSection === 'inventory' ? 'لوحة متابعة المخزون' : activeSection === 'audits' ? 'إدارة الجرد الدوري' : activeSection === 'services' ? 'إدارة الصيانة والتالف والمفقود' : activeSection === 'comparison' ? 'مقارنة مخزون الفروع' : 'تقارير المخزون للفروع'}</h2><p>{activeSection === 'inventory' ? 'متابعة الكميات والمتاح والتالف والمفقود في فروع NIS.' : activeSection === 'audits' ? 'تنظيم جلسات الجرد وتوثيق النتائج ومراجعتها مركزيًا.' : activeSection === 'services' ? 'تسجيل بلاغات التلف والفقد وطلبات الصيانة ومتابعتها.' : activeSection === 'comparison' ? 'مراجعة توزيع الأصناف والكميات والمتاح والتالف والمفقود بين الفروع.' : 'استخراج تقارير تفصيلية وملخصات قابلة للتصدير لكل فرع.'}</p></div>
-          {activeSection === 'inventory' && <button className="button button-primary" onClick={openNew} disabled={!canManage}><Plus size={18}/> إضافة صنف جديد</button>}
+          <div><h2>{activeSection === 'inventory' ? '{t('لوحة متابعة المخزون','Inventory Dashboard')}' : activeSection === 'audits' ? 'إدارة {t('الجرد الدوري','Periodic Audits')}' : activeSection === 'services' ? 'إدارة {t('الصيانة والتالف','Maintenance & Damage')} والمفقود' : activeSection === 'comparison' ? '{t('مقارنة مخزون الفروع','Branch Inventory Comparison')}' : '{t('تقارير المخزون للفروع','Branch Inventory Reports')}'}</h2><p>{activeSection === 'inventory' ? '{t('متابعة الكميات والمتاح والتالف والمفقود في فروع NIS.','Track quantities, available, damaged and missing items across NIS branches.')}' : activeSection === 'audits' ? 'تنظيم جلسات الجرد وتوثيق النتائج ومراجعتها مركزيًا.' : activeSection === 'services' ? 'تسجيل بلاغات التلف والفقد وطلبات الصيانة ومتابعتها.' : activeSection === 'comparison' ? 'مراجعة توزيع الأصناف والكميات والمتاح والتالف والمفقود بين الفروع.' : 'استخراج تقارير تفصيلية وملخصات قابلة للتصدير لكل فرع.'}</p></div>
+          {activeSection === 'inventory' && <button className="button button-primary" onClick={openNew} disabled={!canManage}><Plus size={18}/> {t('إضافة صنف جديد','Add New Item')}</button>}
         </section>
 
         {error && <div className="alert alert-error"><AlertTriangle size={18}/>{error}<button onClick={() => setError('')}><X size={16}/></button></div>}
@@ -528,11 +528,11 @@ function App() {
         </section>
 
         <section className="panel">
-          <div className="panel-heading"><div><h3>سجل الأدوات</h3><p>بيانات الجرد حسب الفرع {inventoryFocus !== 'all' && <button className="inline-clear-filter" onClick={() => setInventoryFocus('all')}>إلغاء التصفية ×</button>}</p></div><button className="button button-light" onClick={() => loadData(session, page, branchFilter, search)}><RefreshCw size={16}/> تحديث البيانات</button></div>
+          <div className="panel-heading"><div><h3>{t('سجل الأدوات','Equipment Register')}</h3><p>{t('بيانات الجرد حسب الفرع','Inventory records by branch')} {inventoryFocus !== 'all' && <button className="inline-clear-filter" onClick={() => setInventoryFocus('all')}>إلغاء التصفية ×</button>}</p></div><button className="button button-light" onClick={() => loadData(session, page, branchFilter, search)}><RefreshCw size={16}/> {t('تحديث البيانات','Refresh Data')}</button></div>
           <div className="filters">
             <label className="search-box"><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="ابحث في جميع سجلات المخزون باسم الصنف أو الكود..."/></label>
-            {isCentral && <label className="select-wrap"><Building2 size={17}/><select value={branchFilter} onChange={e => { const next = e.target.value; setBranchFilter(next); setPage(0); loadData(session, 0, next, search) }}><option value="all">كل الفروع</option>{branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select><ChevronDown size={15}/></label>}
-            <label className="select-wrap"><select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}><option value="all">كل التصنيفات</option>{categories.map(c => <option key={c} value={c}>{c}</option>)}</select><ChevronDown size={15}/></label>
+            {isCentral && <label className="select-wrap"><Building2 size={17}/><select value={branchFilter} onChange={e => { const next = e.target.value; setBranchFilter(next); setPage(0); loadData(session, 0, next, search) }}><option value="all">{t('كل الفروع','All Branches')}</option>{branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select><ChevronDown size={15}/></label>}
+            <label className="select-wrap"><select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}><option value="all">{t('كل التصنيفات','All Categories')}</option>{categories.map(c => <option key={c} value={c}>{c}</option>)}</select><ChevronDown size={15}/></label>
           </div>
           <div className="inventory-table-tools">
             <div className="inventory-tool-group">
@@ -585,7 +585,7 @@ function App() {
       </main>
 
       {modalOpen && <div className="modal-backdrop" onMouseDown={e => {if(e.target===e.currentTarget)setModalOpen(false)}}><form className="modal" onSubmit={saveItem}>
-        <div className="modal-heading"><div><h3>{editing ? 'تعديل بيانات الصنف' : 'إضافة صنف جديد'}</h3><p>أدخل بيانات الأداة والكميات بدقة</p></div><button type="button" className="icon-button" onClick={() => setModalOpen(false)}><X/></button></div>
+        <div className="modal-heading"><div><h3>{editing ? 'تعديل بيانات الصنف' : '{t('إضافة صنف جديد','Add New Item')}'}</h3><p>أدخل بيانات الأداة والكميات بدقة</p></div><button type="button" className="icon-button" onClick={() => setModalOpen(false)}><X/></button></div>
         {!editing && isCentral && <label className="field full">الفرع<select required value={branchFilter === 'all' ? '' : branchFilter} onChange={e => setBranchFilter(e.target.value)}><option value="">اختر الفرع</option>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></label>}
         <div className="form-grid">
           <label className="field">اسم الصنف *<input required value={form.item_name} onChange={e=>setForm({...form,item_name:e.target.value})} placeholder="مثال: كرة قدم"/></label>
