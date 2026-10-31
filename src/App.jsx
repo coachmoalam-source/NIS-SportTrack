@@ -518,10 +518,10 @@ function App() {
         </section>
 
         <section className="panel">
-          <div className="panel-heading"><div><h3>سجل الأدوات</h3><p>بيانات الجرد حسب الفرع {inventoryFocus !== 'all' && <button className="inline-clear-filter" onClick={() => setInventoryFocus('all')}>إلغاء التصفية ×</button>}</p></div><button className="button button-light" onClick={() => loadData(session, page, branchFilter)}><RefreshCw size={16}/> تحديث البيانات</button></div>
+          <div className="panel-heading"><div><h3>سجل الأدوات</h3><p>بيانات الجرد حسب الفرع {inventoryFocus !== 'all' && <button className="inline-clear-filter" onClick={() => setInventoryFocus('all')}>إلغاء التصفية ×</button>}</p></div><button className="button button-light" onClick={() => loadData(session, page, branchFilter, search)}><RefreshCw size={16}/> تحديث البيانات</button></div>
           <div className="filters">
             <label className="search-box"><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="ابحث في جميع سجلات المخزون باسم الصنف أو الكود..."/></label>
-            {isCentral && <label className="select-wrap"><Building2 size={17}/><select value={branchFilter} onChange={e => { const next = e.target.value; setBranchFilter(next); setPage(0); loadData(session, 0, next) }}><option value="all">كل الفروع</option>{branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select><ChevronDown size={15}/></label>}
+            {isCentral && <label className="select-wrap"><Building2 size={17}/><select value={branchFilter} onChange={e => { const next = e.target.value; setBranchFilter(next); setPage(0); loadData(session, 0, next, search) }}><option value="all">كل الفروع</option>{branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select><ChevronDown size={15}/></label>}
             <label className="select-wrap"><select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}><option value="all">كل التصنيفات</option>{categories.map(c => <option key={c} value={c}>{c}</option>)}</select><ChevronDown size={15}/></label>
           </div>
           <div className="inventory-table-tools">
@@ -563,7 +563,7 @@ function App() {
               </tbody>
             </table>
           </div>
-          <div className="table-footer"><span>{inventoryFocus !== 'all' ? `عرض ${inventoryFocus === 'available' ? 'الأدوات المتاحة' : inventoryFocus === 'damaged' ? 'الأدوات التالفة' : 'الأدوات المفقودة'} — ` : ''}المعروض {filteredItems.length} من إجمالي {totalRows} سجلًا — البحث الشامل في جميع السجلات، والتصنيف والترتيب ضمن الصفحة المعروضة</span><div className="pagination"><button className="button button-light" disabled={page === 0 || loading} onClick={() => { const next = page - 1; setPage(next); loadData(session, next, branchFilter) }}>السابق</button><span>صفحة {page + 1}</span><button className="button button-light" disabled={!hasMore || loading} onClick={() => { const next = page + 1; setPage(next); loadData(session, next, branchFilter) }}>التالي</button></div></div>
+          <div className="table-footer"><span>{inventoryFocus !== 'all' ? `عرض ${inventoryFocus === 'available' ? 'الأدوات المتاحة' : inventoryFocus === 'damaged' ? 'الأدوات التالفة' : 'الأدوات المفقودة'} — ` : ''}المعروض {filteredItems.length} من إجمالي {totalRows} سجلًا — البحث الشامل في جميع السجلات، والتصنيف والترتيب ضمن الصفحة المعروضة</span><div className="pagination"><button className="button button-light" disabled={page === 0 || loading} onClick={() => { const next = page - 1; setPage(next); loadData(session, next, branchFilter, search) }}>السابق</button><span>صفحة {page + 1}</span><button className="button button-light" disabled={!hasMore || loading} onClick={() => { const next = page + 1; setPage(next); loadData(session, next, branchFilter, search) }}>التالي</button></div></div>
         </section>
         </>}
         {activeSection === 'audits' && <PeriodicAudits profile={profile} branches={branches} isCentral={isCentral} onNotice={setNotice} onError={setError}/>}
