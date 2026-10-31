@@ -536,19 +536,6 @@ function SetupScreen() {
   return <div className="login-screen"><div className="login-card"><div className="login-logo"><Boxes size={30}/></div><div className="eyebrow">NIS • PHYSICAL EDUCATION</div><h1>NIS SportTrack</h1><p>المنصة جاهزة للاتصال بقاعدة بيانات Supabase.</p><div className="setup-steps"><strong>خطوات الإعداد:</strong><ol><li>أنشئ مشروع Supabase أو استخدم المشروع الحالي.</li><li>نفّذ ملف <code>supabase/schema.sql</code> من SQL Editor.</li><li>أضف متغيري البيئة في ملف <code>.env.local</code> ثم أعد تشغيل التطبيق.</li></ol></div><div className="alert alert-error">لم يتم ضبط بيانات الاتصال بعد.</div></div></div>
 }
 
-export default App
-// Cloudflare Pages production build trigger.
-// Deployment path filter is enabled for all repository files.
-, 'i'))
-        return match ? Math.max(max, Number(match[1])) : max
-      }, 0)
-      const nextCode = prefix + '-' + String(highest + 1).padStart(3, '0')
-      setCodeSuggestion(nextCode)
-      setForm(current => ({ ...current, item_code: nextCode }))
-    }
-    loadNextCode()
-    return () => { cancelled = true }
-  }, [modalOpen, editing, isCentral, form.item_name])
 
 
   async function signIn(event) {
