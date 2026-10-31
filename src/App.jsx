@@ -254,7 +254,7 @@ function App() {
       updated: formatDate(item.updated_at)
     }[key])
     const escapeCsv = value => '"' + String(value ?? '').replace(/"/g,'""') + '"'
-    const csv = '\\uFEFF' + [columns.map(col=>escapeCsv(col.label)).join(','), ...sortedFilteredItems.map(item=>columns.map(col=>escapeCsv(valueFor(item,col.key))).join(','))].join('\\r\\n')
+    const csv = '\uFEFF' + [columns.map(col=>escapeCsv(col.label)).join(','), ...sortedFilteredItems.map(item=>columns.map(col=>escapeCsv(valueFor(item,col.key))).join(','))].join('\r\n')
     const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'})
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
