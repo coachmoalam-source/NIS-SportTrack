@@ -169,7 +169,7 @@ function App() {
         const { data: signed } = await supabase.storage.from('nis-sporttrack-evidence').createSignedUrl(path, 3600)
         displayPhoto = signed?.signedUrl || ''
       }
-      return { ...row, item_name: row.equipment?.name || 'صنف غير معروف', item_code: row.equipment?.item_code || '', category: row.equipment?.categories?.name || '', image_url: displayPhoto, unit: row.equipment?.unit || 'قطعة', equipment_id: row.equipment?.id }
+      return { ...row, item_name: row.equipment?.name || 'صنف غير معروف', item_code: row.equipment?.item_code || '', category: row.equipment?.categories?.name || '', image_url: displayPhoto, photo_storage_value: storedPhoto, unit: row.equipment?.unit || 'قطعة', equipment_id: row.equipment?.id }
     }))
     setItems(mappedItems)
     setTotalRows(count || 0)
@@ -308,7 +308,7 @@ function App() {
     }
     const branchIdForUpload = editing?.branch_id || (isCentral ? branchFilter !== 'all' ? branchFilter : '' : ownBranchId)
     if (imageFile && !branchIdForUpload) { setError('اختر الفرع أولاً قبل رفع الصورة.'); setSaving(false); return }
-    let savedPhoto = editing?.image_url || ''
+    let savedPhoto = editing?.photo_storage_value || editing?.image_url || ''
     if (imageFile) {
       if (!['image/jpeg','image/png','image/webp'].includes(imageFile.type) || imageFile.size > 10 * 1024 * 1024) { setError('يرجى اختيار صورة JPG أو PNG أو WEBP بحجم لا يتجاوز 10 ميجابايت.'); setSaving(false); return }
       const extension = imageFile.type === 'image/png' ? 'png' : imageFile.type === 'image/webp' ? 'webp' : 'jpg'
