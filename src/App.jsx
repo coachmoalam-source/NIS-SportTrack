@@ -506,12 +506,12 @@ function App() {
 
       <main className="main-content">
         <header className="topbar">
-          <div><div className="eyebrow">NIS • PHYSICAL EDUCATION</div><h1>{t('{t('إدارة أدوات التربية الرياضية','PE Equipment Management')}','PE Equipment Management')}</h1></div>
+          <div><div className="eyebrow">NIS • PHYSICAL EDUCATION</div><h1>{t('إدارة أدوات التربية الرياضية','PE Equipment Management')}</h1></div>
           <div className="user-area"><div className="avatar"><CircleUserRound size={21}/></div><div className="user-copy"><strong>{profile?.full_name || session.user.email}</strong><small>{isCentral ? t('مسؤول مركزي','Central Administrator') : t('مسؤول فرع','Branch Administrator')}</small></div><button className="icon-button" onClick={signOut} title="تسجيل الخروج"><LogOut size={18}/></button></div>
         </header>
 
         <section className="welcome-row">
-          <div><h2>{activeSection === 'inventory' ? '{t('لوحة متابعة المخزون','Inventory Dashboard')}' : activeSection === 'audits' ? 'إدارة {t('الجرد الدوري','Periodic Audits')}' : activeSection === 'services' ? 'إدارة {t('الصيانة والتالف','Maintenance & Damage')} والمفقود' : activeSection === 'comparison' ? '{t('مقارنة مخزون الفروع','Branch Inventory Comparison')}' : '{t('تقارير المخزون للفروع','Branch Inventory Reports')}'}</h2><p>{activeSection === 'inventory' ? '{t('متابعة الكميات والمتاح والتالف والمفقود في فروع NIS.','Track quantities, available, damaged and missing items across NIS branches.')}' : activeSection === 'audits' ? 'تنظيم جلسات الجرد وتوثيق النتائج ومراجعتها مركزيًا.' : activeSection === 'services' ? 'تسجيل بلاغات التلف والفقد وطلبات الصيانة ومتابعتها.' : activeSection === 'comparison' ? 'مراجعة توزيع الأصناف والكميات والمتاح والتالف والمفقود بين الفروع.' : 'استخراج تقارير تفصيلية وملخصات قابلة للتصدير لكل فرع.'}</p></div>
+          <div><h2>{activeSection === 'inventory' ? t('لوحة متابعة المخزون','Inventory Dashboard') : activeSection === 'audits' ? t('إدارة الجرد الدوري','Periodic Audit Management') : activeSection === 'services' ? t('إدارة الصيانة والتالف والمفقود','Damage, Loss & Maintenance') : activeSection === 'comparison' ? t('مقارنة مخزون الفروع','Branch Inventory Comparison') : t('تقارير المخزون للفروع','Branch Inventory Reports')}</h2><p>{activeSection === 'inventory' ? t('متابعة الكميات والمتاح والتالف والمفقود في فروع NIS.','Track quantities, available, damaged and missing items across NIS branches.') : activeSection === 'audits' ? 'تنظيم جلسات الجرد وتوثيق النتائج ومراجعتها مركزيًا.' : activeSection === 'services' ? 'تسجيل بلاغات التلف والفقد وطلبات الصيانة ومتابعتها.' : activeSection === 'comparison' ? 'مراجعة توزيع الأصناف والكميات والمتاح والتالف والمفقود بين الفروع.' : 'استخراج تقارير تفصيلية وملخصات قابلة للتصدير لكل فرع.'}</p></div>
           {activeSection === 'inventory' && <button className="button button-primary" onClick={openNew} disabled={!canManage}><Plus size={18}/> {t('إضافة صنف جديد','Add New Item')}</button>}
         </section>
 
@@ -585,7 +585,7 @@ function App() {
       </main>
 
       {modalOpen && <div className="modal-backdrop" onMouseDown={e => {if(e.target===e.currentTarget)setModalOpen(false)}}><form className="modal" onSubmit={saveItem}>
-        <div className="modal-heading"><div><h3>{editing ? 'تعديل بيانات الصنف' : '{t('إضافة صنف جديد','Add New Item')}'}</h3><p>أدخل بيانات الأداة والكميات بدقة</p></div><button type="button" className="icon-button" onClick={() => setModalOpen(false)}><X/></button></div>
+        <div className="modal-heading"><div><h3>{editing ? 'تعديل بيانات الصنف' : t('إضافة صنف جديد','Add New Item')}</h3><p>أدخل بيانات الأداة والكميات بدقة</p></div><button type="button" className="icon-button" onClick={() => setModalOpen(false)}><X/></button></div>
         {!editing && isCentral && <label className="field full">الفرع<select required value={branchFilter === 'all' ? '' : branchFilter} onChange={e => setBranchFilter(e.target.value)}><option value="">اختر الفرع</option>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></label>}
         <div className="form-grid">
           <label className="field">اسم الصنف *<input required value={form.item_name} onChange={e=>setForm({...form,item_name:e.target.value})} placeholder="مثال: كرة قدم"/></label>
