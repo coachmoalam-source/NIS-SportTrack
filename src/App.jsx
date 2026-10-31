@@ -261,7 +261,8 @@ function App() {
     link.href=url; link.download='NIS-SportTrack-Inventory.csv'; link.click()
     URL.revokeObjectURL(url)
   }
-\n  const categories = [...new Set(items.map(item => item.category).filter(Boolean))]
+
+  const categories = [...new Set(items.map(item => item.category).filter(Boolean))]
 
   useEffect(() => {
     if (!modalOpen || editing || !isCentral) {
