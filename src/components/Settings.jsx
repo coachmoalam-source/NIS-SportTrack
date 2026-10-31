@@ -17,7 +17,7 @@ export default function Settings({ session, profile, isCentral, onError, onNotic
   useEffect(() => {
     localStorage.setItem('nis-language', language)
     document.documentElement.lang = language
-    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr'
+    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr'\n    window.dispatchEvent(new Event('nis-language-change'))
   }, [language])
 
   useEffect(() => {
