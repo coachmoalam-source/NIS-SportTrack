@@ -42,6 +42,7 @@ const SPORT_CODES = [
   { prefix: 'TK', words: ['taekwondo', 'تايكوندو'] },
   { prefix: 'F', words: ['fencing', 'مبارزة', 'مبارزه'] }
 ]
+const BRANCH_CODE_TAGS = { 'El Shorouk': 'SH', 'O West': 'OW', 'New Capital': 'NC', 'El Tagamoa': 'TG', 'Porto Said': 'PS' }
 const getSportPrefix = value => {
   const name = String(value || '').toLowerCase().trim()
   if (!name) return ''
@@ -193,7 +194,7 @@ function App() {
         const { data: signed } = await supabase.storage.from('nis-sporttrack-evidence').createSignedUrl(path, 3600)
         displayPhoto = signed?.signedUrl || ''
       }
-      return { ...row, item_name: row.equipment?.name || 'صنف غير معروف', item_code: row.equipment?.item_code || '', category: row.equipment?.categories?.name || '', image_url: displayPhoto, photo_storage_value: storedPhoto, unit: row.equipment?.unit || 'قطعة', equipment_id: row.equipment?.id }
+      return { ...row, item_name: row.equipment?.name || 'صنف غير معروف', item_code: row.equipment?.item_code || '', category: row.equipment?.categories?.name || row.equipment?.custom_category || '', image_url: displayPhoto, photo_storage_value: storedPhoto, unit: row.equipment?.unit || 'قطعة', equipment_id: row.equipment?.id }
     }))
     setItems(mappedItems)
     setTotalRows(count || 0)
@@ -291,11 +292,13 @@ function App() {
   const categories = [...new Set(items.map(item => item.category).filter(Boolean))]
 
   useEffect(() => {
-    if (!modalOpen || editing || !isCentral) {
+    if (!modalOpen || editing || (!isCentral && profile?.role !== 'branch_manager')) {
       setCodeSuggestion('')
       return
     }
     const prefix = getSportPrefix(form.item_name)
+    const branchTag = BRANCH_CODE_TAGS[branches.find(branch => branch.id === ownBranchId)?.name] || 'BR'
+    const codePrefix = isCentral ? prefix + '-' : prefix + '-' + branchTag + '-'
     if (!prefix || !supabase) {
       setCodeSuggestion('')
       setForm(current => current.item_code ? { ...current, item_code: '' } : current)
@@ -306,7 +309,7 @@ function App() {
       const { data, error: codeError } = await supabase
         .from('equipment')
         .select('item_code')
-        .like('item_code', prefix + '-%')
+        .like('item_code', codePrefix + '%')
       if (cancelled) return
       if (codeError) {
         setCodeSuggestion('')
@@ -314,17 +317,17 @@ function App() {
       }
       const highest = (data || []).reduce((max, row) => {
         const code = String(row.item_code || '')
-        if (!code.startsWith(prefix + '-')) return max
-        const sequence = Number(code.slice(prefix.length + 1))
+        if (!code.startsWith(codePrefix)) return max
+        const sequence = Number(code.slice(codePrefix.length))
         return Number.isInteger(sequence) && sequence > max ? sequence : max
       }, 0)
-      const nextCode = prefix + '-' + String(highest + 1).padStart(3, '0')
+      const nextCode = codePrefix + String(highest + 1).padStart(3, '0')
       setCodeSuggestion(nextCode)
       setForm(current => ({ ...current, item_code: nextCode }))
     }
     loadNextCode()
     return () => { cancelled = true }
-  }, [modalOpen, editing, isCentral, form.item_name])
+  }, [modalOpen, editing, isCentral, profile?.role, form.item_name, branches, ownBranchId])
 
   async function signIn(event) {
     event.preventDefault()
@@ -426,7 +429,9 @@ function App() {
         description: form.notes.trim() || null,
         photo_url: savedPhoto.startsWith('storage:') ? savedPhoto : (form.image_url.trim() || null),
         unit: form.unit.trim() || 'Piece',
-        category_id: categoryId
+        category_id: categoryId,
+        custom_category: null,
+        branch_id: editing ? undefined : null
       }
 
       if (!editing && !equipmentPayload.item_code) {
@@ -449,15 +454,28 @@ function App() {
         equipmentId = createdEquipment.id
       }
     } else if (!editing) {
-      // Branch managers can add stock only for equipment already registered centrally.
-      // Do not write to the shared categories or equipment catalog from a branch account.
-      const { data: existingEquipment, error: equipmentLookupError } = await supabase
-        .from('equipment').select('id').eq('name', form.item_name.trim()).maybeSingle()
-      if (equipmentLookupError || !existingEquipment) {
-        setError('هذا الصنف غير مسجل في دليل الأدوات. اطلب من المسؤول المركزي إضافته أولاً.')
-        setSaving(false); return
+      // Branch managers create branch-scoped equipment; it is not shared with other branches.
+      const branchTag = BRANCH_CODE_TAGS[branches.find(branch => branch.id === ownBranchId)?.name] || 'BR'
+      const prefix = getSportPrefix(form.item_name)
+      const codePrefix = prefix ? prefix + '-' + branchTag + '-' : 'OT-' + branchTag + '-'
+      const { data: createdEquipment, error: equipmentError } = await supabase
+        .from('equipment')
+        .insert({
+          branch_id: ownBranchId,
+          name: form.item_name.trim(),
+          item_code: form.item_code.trim() || codePrefix + Date.now().toString().slice(-6),
+          description: form.notes.trim() || null,
+          custom_category: form.category.trim() || null,
+          photo_url: savedPhoto.startsWith('storage:') ? savedPhoto : (form.image_url.trim() || null),
+          unit: form.unit.trim() || 'قطعة',
+          category_id: null
+        })
+        .select('id')
+        .single()
+      if (equipmentError) {
+        setError(equipmentError.message); setSaving(false); return
       }
-      equipmentId = existingEquipment.id
+      equipmentId = createdEquipment.id
     }
 
     const result = editing
