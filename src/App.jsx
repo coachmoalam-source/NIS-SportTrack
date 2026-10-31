@@ -397,7 +397,7 @@ function App() {
     }
     let equipmentId = editing?.equipment_id || null
 
-    if (!editing || isCentral) {
+    if (isCentral) {
       let categoryId = null
       const categoryName = form.category.trim()
       if (categoryName) {
@@ -429,35 +429,35 @@ function App() {
         category_id: categoryId
       }
 
-      if (!editing && isCentral && !equipmentPayload.item_code) {
+      if (!editing && !equipmentPayload.item_code) {
         setError('لم يتم تحديد اللعبة من اسم الأداة. اكتب اسم اللعبة بوضوح أو أدخل كوداً يدوياً.');
         setSaving(false); return
       }
 
-      if (editing && isCentral) {
+      if (editing) {
         const { error: equipmentError } = await supabase.from('equipment')
           .update(equipmentPayload).eq('id', equipmentId)
         if (equipmentError) {
           setError(equipmentError.message); setSaving(false); return
         }
-      } else if (!editing) {
-        if (isCentral) {
-          const { data: createdEquipment, error: equipmentError } = await supabase
-            .from('equipment').insert(equipmentPayload).select('id').single()
-          if (equipmentError) {
-            setError(equipmentError.message); setSaving(false); return
-          }
-          equipmentId = createdEquipment.id
-        } else {
-          const { data: existingEquipment, error: equipmentLookupError } = await supabase
-            .from('equipment').select('id').eq('name', equipmentPayload.name).maybeSingle()
-          if (equipmentLookupError || !existingEquipment) {
-            setError('هذا الصنف غير مسجل في دليل الأدوات. اطلب من المسؤول المركزي إضافته أولاً.')
-            setSaving(false); return
-          }
-          equipmentId = existingEquipment.id
+      } else {
+        const { data: createdEquipment, error: equipmentError } = await supabase
+          .from('equipment').insert(equipmentPayload).select('id').single()
+        if (equipmentError) {
+          setError(equipmentError.message); setSaving(false); return
         }
+        equipmentId = createdEquipment.id
       }
+    } else if (!editing) {
+      // Branch managers can add stock only for equipment already registered centrally.
+      // Do not write to the shared categories or equipment catalog from a branch account.
+      const { data: existingEquipment, error: equipmentLookupError } = await supabase
+        .from('equipment').select('id').eq('name', form.item_name.trim()).maybeSingle()
+      if (equipmentLookupError || !existingEquipment) {
+        setError('هذا الصنف غير مسجل في دليل الأدوات. اطلب من المسؤول المركزي إضافته أولاً.')
+        setSaving(false); return
+      }
+      equipmentId = existingEquipment.id
     }
 
     const result = editing
