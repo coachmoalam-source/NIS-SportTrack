@@ -223,3 +223,8 @@
  .app-shell .pagination{width:100%;justify-content:space-between}
  .app-shell .modal{max-height:94vh}
 }
+
+
+/* Direct private image upload preview */
+.upload-preview{display:block;width:min(100%,260px);max-height:190px;object-fit:contain;margin-top:10px;border:1px solid #354b68;border-radius:12px;background:#0c1d35;padding:5px}
+.field input[type=file]{padding:10px;border:1px dashed #9aabc0;border-radius:10px;background:#132947;color:#dce6f4}
