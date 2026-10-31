@@ -229,11 +229,28 @@ function App() {
     let cancelled = false
     const loadNextCode = async () => {
       const { data, error: codeError } = await supabase
-        .from('equipment').select('item_code').like('item_code', prefix + '-%')
+        .from('equipment')
+        .select('item_code')
+        .like('item_code', prefix + '-%')
       if (cancelled) return
-      if (codeError) { setCodeSuggestion(''); return }
+      if (codeError) {
+        setCodeSuggestion('')
+        return
+      }
       const highest = (data || []).reduce((max, row) => {
-        const match = String(row.item_code || '').match(new RegExp('^' + prefix + '-(\\d+)
+        const code = String(row.item_code || '')
+        if (!code.startsWith(prefix + '-')) return max
+        const sequence = Number(code.slice(prefix.length + 1))
+        return Number.isInteger(sequence) && sequence > max ? sequence : max
+      }, 0)
+      const nextCode = prefix + '-' + String(highest + 1).padStart(3, '0')
+      setCodeSuggestion(nextCode)
+      setForm(current => ({ ...current, item_code: nextCode }))
+    }
+    loadNextCode()
+    return () => { cancelled = true }
+  }, [modalOpen, editing, isCentral, form.item_name])
+
   async function signIn(event) {
     event.preventDefault()
     setError('')
