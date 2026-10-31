@@ -517,6 +517,16 @@ function App() {
           {activeSection === 'inventory' && <button className="button button-primary" onClick={openNew} disabled={!canManage}><Plus size={18}/> {t('إضافة صنف جديد','Add New Item')}</button>}
         </section>
 
+        {activeSection === 'inventory' && <section className="dashboard-hero">
+          <div className="dashboard-hero-copy">
+            <span className="dashboard-hero-kicker">{t('NIS • إدارة الأدوات الرياضية','NIS • SPORTS EQUIPMENT MANAGEMENT')}</span>
+            <h2>{t('أهلاً بك،','Welcome,')} {profile?.full_name || t('في NIS SportTrack','to NIS SportTrack')}</h2>
+            <p>{t('كل فروعنا ومخزوننا في رؤية واحدة. متابعة دقيقة، قرارات أسرع، وأدوات جاهزة للّعب.','All branches and inventory in one view. Clear tracking, faster decisions, and equipment ready for play.')}</p>
+            <div className="dashboard-hero-meta"><span><Activity size={15}/>{t('متابعة مباشرة للمخزون','Live inventory overview')}</span><span><ShieldCheck size={15}/>{isExecutive ? t('صلاحية عرض ومراجعة','View & review access') : isCentral ? t('إدارة مركزية','Central management') : t('إدارة الفرع','Branch management')}</span></div>
+          </div>
+          <div className="dashboard-hero-mark"><div className="hero-mark-ring"><Boxes size={44}/></div><strong>NIS</strong><small>SPORTTRACK</small><i>MANAGE • TRACK • EXCEL</i></div>
+          <div className="dashboard-hero-glow"/>
+        </section>}
         {error && <div className="alert alert-error"><AlertTriangle size={18}/>{error}<button onClick={() => setError('')}><X size={16}/></button></div>}
         {notice && <div className="alert alert-success"><CheckCircle2 size={18}/>{notice}<button onClick={() => setNotice('')}><X size={16}/></button></div>}
 
