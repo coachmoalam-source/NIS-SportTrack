@@ -308,3 +308,11 @@
 .service-status-actions{display:flex;gap:7px;flex-wrap:wrap}
 .service-status-actions .button{font-size:11px;padding:8px 10px}
 @media(max-width:700px){.service-form-grid{grid-template-columns:1fr}.service-row-main{flex-direction:column}.service-metrics{gap:7px}.service-metrics>div{padding:10px}.service-metrics strong{font-size:19px}}
+
+
+/* Make dashboard shortcuts clearly interactive */
+.stat-card-clickable{width:100%;border:1px solid var(--border,#e7edf4);font:inherit;text-align:right;cursor:pointer;position:relative;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
+.stat-card-clickable:hover{transform:translateY(-2px);border-color:#9aafc4;box-shadow:0 8px 22px rgba(22,53,82,.09)}
+.stat-card-clickable:focus-visible,.nav-item:focus-visible{outline:3px solid rgba(35,104,157,.35);outline-offset:2px}
+.stat-open-hint{font-size:10px;color:#718399;margin-top:5px;display:block}
+.inline-clear-filter{border:0;background:transparent;color:#a43a35;font:inherit;font-size:11px;cursor:pointer;margin-inline-start:8px;text-decoration:underline}
