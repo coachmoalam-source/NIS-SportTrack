@@ -8,6 +8,7 @@ import { isSupabaseConfigured, supabase } from './lib/supabase'
 import PeriodicAudits from './components/PeriodicAudits'
 import DamageMaintenance from './components/DamageMaintenance'
 import BranchComparison from './components/BranchComparison'
+import Settings from './components/Settings'
 import InventoryReports from './components/InventoryReports'
 
 const BRANCHES = ['El Shorouk', 'O West', 'New Capital', 'El Tagamoa', 'Porto Said']
@@ -71,11 +72,13 @@ function App() {
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState('')
   const [activeSection, setActiveSection] = useState('inventory')
+  const [language, setLanguage] = useState(() => localStorage.getItem('nis-language') || 'ar')
+  const t = (ar, en) => language === 'en' ? en : ar
   const [inventoryFocus, setInventoryFocus] = useState('all')
   const [visibleColumns, setVisibleColumns] = useState(['item','branch','category','quantity','damaged','missing','available','updated'])
   const [sortConfig, setSortConfig] = useState({ key: 'item_name', direction: 'asc' })
 
-  const isCentral = profile?.role === 'super_admin'
+  useEffect(() => {\n    const syncLanguage = () => setLanguage(localStorage.getItem('nis-language') || 'ar')\n    window.addEventListener('nis-language-change', syncLanguage)\n    return () => window.removeEventListener('nis-language-change', syncLanguage)\n  }, [])\n\n  const isCentral = profile?.role === 'super_admin'
   const canManage = isCentral || profile?.role === 'branch_manager'
   const ownBranchId = profile?.branch_id
 
@@ -482,7 +485,7 @@ function App() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand"><div className="brand-mark"><Boxes size={25}/></div><div><strong>NIS SportTrack</strong><small>PE Inventory Management</small></div></div>
-        <div className="side-label">القائمة الرئيسية</div>
+        <div className="side-label">{t('القائمة الرئيسية','MAIN MENU')}</div>
         <button className={activeSection === 'inventory' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('inventory')}><ClipboardList size={18}/> إدارة المخزون</button>
         <button className={activeSection === 'audits' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('audits')}><Activity size={18}/> الجرد الدوري</button>
         <button className={activeSection === 'services' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('services')}><Wrench size={18}/> الصيانة والتالف</button>
@@ -490,14 +493,14 @@ function App() {
           <button className={activeSection === 'comparison' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('comparison')}><Building2 size={18}/> مقارنة الفروع</button>
           <button className={activeSection === 'reports' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('reports')}><ClipboardList size={18}/> تقارير الفروع</button>
         </>}
-        <button className={activeSection === 'branches' ? 'nav-item active' : 'nav-item'} onClick={() => { setActiveSection('inventory'); setBranchFilter('all'); setPage(0); setInventoryFocus('all'); loadData(session, 0, 'all') }}><Building2 size={18}/> الفروع</button>
+        <button className={activeSection === 'settings' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('settings')}><ShieldCheck size={18}/> {t('الإعدادات','Settings')}</button>\n        <button className={activeSection === 'branches' ? 'nav-item active' : 'nav-item'} onClick={() => { setActiveSection('inventory'); setBranchFilter('all'); setPage(0); setInventoryFocus('all'); loadData(session, 0, 'all') }}><Building2 size={18}/> الفروع</button>
         <div className="sidebar-bottom"><ShieldCheck size={17}/><span>نظام متابعة مركزي للفروع</span></div>
       </aside>
 
       <main className="main-content">
         <header className="topbar">
-          <div><div className="eyebrow">NIS • PHYSICAL EDUCATION</div><h1>إدارة أدوات التربية الرياضية</h1></div>
-          <div className="user-area"><div className="avatar"><CircleUserRound size={21}/></div><div className="user-copy"><strong>{profile?.full_name || session.user.email}</strong><small>{isCentral ? 'مسؤول مركزي' : 'مسؤول فرع'}</small></div><button className="icon-button" onClick={signOut} title="تسجيل الخروج"><LogOut size={18}/></button></div>
+          <div><div className="eyebrow">NIS • PHYSICAL EDUCATION</div><h1>{t('إدارة أدوات التربية الرياضية','PE Equipment Management')}</h1></div>
+          <div className="user-area"><div className="avatar"><CircleUserRound size={21}/></div><div className="user-copy"><strong>{profile?.full_name || session.user.email}</strong><small>{isCentral ? t('مسؤول مركزي','Central Administrator') : t('مسؤول فرع','Branch Administrator')}</small></div><button className="icon-button" onClick={signOut} title="تسجيل الخروج"><LogOut size={18}/></button></div>
         </header>
 
         <section className="welcome-row">
