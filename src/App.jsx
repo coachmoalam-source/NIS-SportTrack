@@ -445,7 +445,7 @@ function App() {
         </header>
 
         <section className="welcome-row">
-          <div><h2>{activeSection === 'inventory' ? 'لوحة متابعة المخزون' : activeSection === 'audits' ? 'إدارة الجرد الدوري' : 'إدارة الصيانة والتالف والمفقود'}</h2><p>{activeSection === 'inventory' ? 'متابعة الكميات والمتاح والتالف والمفقود في فروع NIS.' : activeSection === 'audits' ? 'تنظيم جلسات الجرد وتوثيق النتائج ومراجعتها مركزيًا.' : 'تسجيل بلاغات التلف والفقد وطلبات الصيانة ومتابعتها.'}</p></div>
+          <div><h2>{activeSection === 'inventory' ? 'لوحة متابعة المخزون' : activeSection === 'audits' ? 'إدارة الجرد الدوري' : activeSection === 'services' ? 'إدارة الصيانة والتالف والمفقود' : 'مقارنة مخزون الفروع'}</h2><p>{activeSection === 'inventory' ? 'متابعة الكميات والمتاح والتالف والمفقود في فروع NIS.' : activeSection === 'audits' ? 'تنظيم جلسات الجرد وتوثيق النتائج ومراجعتها مركزيًا.' : activeSection === 'services' ? 'تسجيل بلاغات التلف والفقد وطلبات الصيانة ومتابعتها.' : 'مراجعة توزيع الأصناف والكميات والمتاح والتالف والمفقود بين الفروع.'}</p></div>
           {activeSection === 'inventory' && <button className="button button-primary" onClick={openNew} disabled={!canManage}><Plus size={18}/> إضافة صنف جديد</button>}
         </section>
 
