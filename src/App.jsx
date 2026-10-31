@@ -572,7 +572,7 @@ function App() {
         {activeSection === 'audits' && <PeriodicAudits profile={profile} branches={branches} isCentral={isCentral} onNotice={setNotice} onError={setError}/>}
         {activeSection === 'services' && <DamageMaintenance profile={profile} branches={branches} isCentral={isCentral} onNotice={setNotice} onError={setError}/>}
         {activeSection === 'comparison' && isCentral && <BranchComparison branches={branches} onError={setError}/ >}
-        {activeSection === 'reports' && isCentral && <InventoryReports branches={branches} onError={setError}/ >}
+        {activeSection === 'reports' && isCentral && <InventoryReports branches={branches} onError={setError}/ >}\n        {activeSection === 'settings' && <Settings session={session} profile={profile} isCentral={isCentral} onError={setError} onNotice={setNotice} onProfileUpdated={setProfile}/ >}
         <footer className="footer">NIS SportTrack <span>•</span> Physical Education Department</footer>
       </main>
 
