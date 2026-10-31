@@ -8,6 +8,7 @@ import { isSupabaseConfigured, supabase } from './lib/supabase'
 import PeriodicAudits from './components/PeriodicAudits'
 import DamageMaintenance from './components/DamageMaintenance'
 import BranchComparison from './components/BranchComparison'
+import InventoryReports from './components/InventoryReports'
 
 const BRANCHES = ['El Shorouk', 'O West', 'New Capital', 'El Tagamoa', 'Porto Said']
 const emptyForm = { item_code: '', item_name: '', category: '', quantity: 0, damaged_quantity: 0, missing_quantity: 0, unit: 'قطعة', image_url: '', notes: '' }
@@ -84,7 +85,7 @@ function App() {
   const [totalRows, setTotalRows] = useState(0)
   const [inventoryTotals, setInventoryTotals] = useState({ items: 0, quantity: 0, damaged: 0, missing: 0, available: 0 })
 
-  const loadData = useCallback(async (activeSession = session, requestedPage = page, requestedBranch = branchFilter) => {
+  const loadData = useCallback(async (activeSession = session, requestedPage = page, requestedBranch = branchFilter, requestedSearch = '') => {
     if (!activeSession || !supabase) return
     setLoading(true)
     setError('')
@@ -104,6 +105,11 @@ function App() {
       .select('id, branch_id, quantity, damaged_quantity, missing_quantity, notes, updated_at, branches!inventory_branch_id_fkey(name), equipment!inventory_equipment_id_fkey(id, name, item_code, photo_url, unit, categories!equipment_category_id_fkey(name))', { count: 'exact' })
       .order('updated_at', { ascending: false })
       .range(requestedPage * PAGE_SIZE, (requestedPage + 1) * PAGE_SIZE - 1)
+    const searchTerm = String(requestedSearch || '').trim().replace(/[%,]/g, ' ')
+    if (searchTerm) {
+      const pattern = '%' + searchTerm + '%'
+      query = query.or('name.ilike.' + pattern + ',item_code.ilike.' + pattern, { foreignTable: 'equipment' })
+    }
     if (profileResult.data.role !== 'super_admin') {
       if (!profileResult.data.branch_id) {
         setItems([])
@@ -214,6 +220,15 @@ function App() {
       listener.subscription.unsubscribe()
     }
   }, [])
+
+  useEffect(() => {
+    if (!session) return
+    const timer = setTimeout(() => {
+      setPage(0)
+      loadData(session, 0, branchFilter, search)
+    }, 350)
+    return () => clearTimeout(timer)
+  }, [search])
 
   const filteredItems = useMemo(() => items.filter(item => {
     const term = search.trim().toLowerCase()
@@ -471,7 +486,8 @@ function App() {
         <button className={activeSection === 'inventory' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('inventory')}><ClipboardList size={18}/> إدارة المخزون</button>
         <button className={activeSection === 'audits' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('audits')}><Activity size={18}/> الجرد الدوري</button>
         <button className={activeSection === 'services' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('services')}><Wrench size={18}/> الصيانة والتالف</button>
-        {isCentral && <button className={activeSection === 'comparison' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('comparison')}><Building2 size={18}/> مقارنة الفروع</button>}
+        {isCentral && <button className={activeSection === 'comparison' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('comparison')}><Building2 size={18}/> مقارنة الفروع</button>
+        {isCentral && <button className={activeSection === 'reports' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('reports')}><ClipboardList size={18}/> تقارير الفروع</button>}}
         <button className={activeSection === 'branches' ? 'nav-item active' : 'nav-item'} onClick={() => { setActiveSection('inventory'); setBranchFilter('all'); setPage(0); setInventoryFocus('all'); loadData(session, 0, 'all') }}><Building2 size={18}/> الفروع</button>
         <div className="sidebar-bottom"><ShieldCheck size={17}/><span>نظام متابعة مركزي للفروع</span></div>
       </aside>
@@ -483,7 +499,7 @@ function App() {
         </header>
 
         <section className="welcome-row">
-          <div><h2>{activeSection === 'inventory' ? 'لوحة متابعة المخزون' : activeSection === 'audits' ? 'إدارة الجرد الدوري' : activeSection === 'services' ? 'إدارة الصيانة والتالف والمفقود' : 'مقارنة مخزون الفروع'}</h2><p>{activeSection === 'inventory' ? 'متابعة الكميات والمتاح والتالف والمفقود في فروع NIS.' : activeSection === 'audits' ? 'تنظيم جلسات الجرد وتوثيق النتائج ومراجعتها مركزيًا.' : activeSection === 'services' ? 'تسجيل بلاغات التلف والفقد وطلبات الصيانة ومتابعتها.' : 'مراجعة توزيع الأصناف والكميات والمتاح والتالف والمفقود بين الفروع.'}</p></div>
+          <div><h2>{activeSection === 'inventory' ? 'لوحة متابعة المخزون' : activeSection === 'audits' ? 'إدارة الجرد الدوري' : activeSection === 'services' ? 'إدارة الصيانة والتالف والمفقود' : activeSection === 'comparison' ? 'مقارنة مخزون الفروع' : 'تقارير المخزون للفروع'}</h2><p>{activeSection === 'inventory' ? 'متابعة الكميات والمتاح والتالف والمفقود في فروع NIS.' : activeSection === 'audits' ? 'تنظيم جلسات الجرد وتوثيق النتائج ومراجعتها مركزيًا.' : activeSection === 'services' ? 'تسجيل بلاغات التلف والفقد وطلبات الصيانة ومتابعتها.' : activeSection === 'comparison' ? 'مراجعة توزيع الأصناف والكميات والمتاح والتالف والمفقود بين الفروع.' : 'استخراج تقارير تفصيلية وملخصات قابلة للتصدير لكل فرع.'}</p></div>
           {activeSection === 'inventory' && <button className="button button-primary" onClick={openNew} disabled={!canManage}><Plus size={18}/> إضافة صنف جديد</button>}
         </section>
 
@@ -502,7 +518,7 @@ function App() {
         <section className="panel">
           <div className="panel-heading"><div><h3>سجل الأدوات</h3><p>بيانات الجرد حسب الفرع {inventoryFocus !== 'all' && <button className="inline-clear-filter" onClick={() => setInventoryFocus('all')}>إلغاء التصفية ×</button>}</p></div><button className="button button-light" onClick={() => loadData(session, page, branchFilter)}><RefreshCw size={16}/> تحديث البيانات</button></div>
           <div className="filters">
-            <label className="search-box"><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="ابحث باسم الصنف أو الكود في الصفحة الحالية..."/></label>
+            <label className="search-box"><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="ابحث في جميع سجلات المخزون باسم الصنف أو الكود..."/></label>
             {isCentral && <label className="select-wrap"><Building2 size={17}/><select value={branchFilter} onChange={e => { const next = e.target.value; setBranchFilter(next); setPage(0); loadData(session, 0, next) }}><option value="all">كل الفروع</option>{branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select><ChevronDown size={15}/></label>}
             <label className="select-wrap"><select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}><option value="all">كل التصنيفات</option>{categories.map(c => <option key={c} value={c}>{c}</option>)}</select><ChevronDown size={15}/></label>
           </div>
@@ -545,12 +561,13 @@ function App() {
               </tbody>
             </table>
           </div>
-          <div className="table-footer"><span>{inventoryFocus !== 'all' ? `عرض ${inventoryFocus === 'available' ? 'الأدوات المتاحة' : inventoryFocus === 'damaged' ? 'الأدوات التالفة' : 'الأدوات المفقودة'} — ` : ''}المعروض {filteredItems.length} من إجمالي {totalRows} سجلًا — البحث والتصنيف والترتيب ضمن الصفحة الحالية</span><div className="pagination"><button className="button button-light" disabled={page === 0 || loading} onClick={() => { const next = page - 1; setPage(next); loadData(session, next, branchFilter) }}>السابق</button><span>صفحة {page + 1}</span><button className="button button-light" disabled={!hasMore || loading} onClick={() => { const next = page + 1; setPage(next); loadData(session, next, branchFilter) }}>التالي</button></div></div>
+          <div className="table-footer"><span>{inventoryFocus !== 'all' ? `عرض ${inventoryFocus === 'available' ? 'الأدوات المتاحة' : inventoryFocus === 'damaged' ? 'الأدوات التالفة' : 'الأدوات المفقودة'} — ` : ''}المعروض {filteredItems.length} من إجمالي {totalRows} سجلًا — البحث الشامل في جميع السجلات، والتصنيف والترتيب ضمن الصفحة المعروضة</span><div className="pagination"><button className="button button-light" disabled={page === 0 || loading} onClick={() => { const next = page - 1; setPage(next); loadData(session, next, branchFilter) }}>السابق</button><span>صفحة {page + 1}</span><button className="button button-light" disabled={!hasMore || loading} onClick={() => { const next = page + 1; setPage(next); loadData(session, next, branchFilter) }}>التالي</button></div></div>
         </section>
         </>}
         {activeSection === 'audits' && <PeriodicAudits profile={profile} branches={branches} isCentral={isCentral} onNotice={setNotice} onError={setError}/>}
         {activeSection === 'services' && <DamageMaintenance profile={profile} branches={branches} isCentral={isCentral} onNotice={setNotice} onError={setError}/>}
         {activeSection === 'comparison' && isCentral && <BranchComparison branches={branches} onError={setError}/ >}
+        {activeSection === 'reports' && isCentral && <InventoryReports branches={branches} onError={setError}/ >}
         <footer className="footer">NIS SportTrack <span>•</span> Physical Education Department</footer>
       </main>
 
