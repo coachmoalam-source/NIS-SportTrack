@@ -47,10 +47,25 @@ values ('nis-sporttrack-evidence','nis-sporttrack-evidence',false,10485760,array
 on conflict (id) do update set public=false,file_size_limit=10485760,allowed_mime_types=array['image/jpeg','image/png','image/webp'];
 drop policy if exists "NIS evidence read by permitted branch" on storage.objects;
 create policy "NIS evidence read by permitted branch" on storage.objects for select to authenticated
-using (bucket_id='nis-sporttrack-evidence' and (public.is_super_admin() or (public.current_app_role()='branch_manager' and (storage.foldername(name))[1]=public.current_branch_id()::text)));
+using (
+ bucket_id='nis-sporttrack-evidence'
+ and (
+   public.is_super_admin()
+   or (public.current_app_role()='branch_manager' and (
+     (storage.foldername(name))[1]='equipment'
+     or (storage.foldername(name))[1]=public.current_branch_id()::text
+   ))
+ )
+);
 drop policy if exists "NIS evidence upload by permitted branch" on storage.objects;
 create policy "NIS evidence upload by permitted branch" on storage.objects for insert to authenticated
-with check (bucket_id='nis-sporttrack-evidence' and (public.is_super_admin() or (public.current_app_role()='branch_manager' and (storage.foldername(name))[1]=public.current_branch_id()::text)));
+with check (
+ bucket_id='nis-sporttrack-evidence'
+ and (
+   public.is_super_admin()
+   or (public.current_app_role()='branch_manager' and (storage.foldername(name))[1]=public.current_branch_id()::text)
+ )
+);
 drop policy if exists "NIS evidence delete by permitted branch" on storage.objects;
 create policy "NIS evidence delete by permitted branch" on storage.objects for delete to authenticated
 using (bucket_id='nis-sporttrack-evidence' and (public.is_super_admin() or (public.current_app_role()='branch_manager' and (storage.foldername(name))[1]=public.current_branch_id()::text)));
