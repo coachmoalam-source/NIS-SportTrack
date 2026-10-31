@@ -308,17 +308,17 @@ function App() {
         {notice && <div className="alert alert-success"><CheckCircle2 size={18}/>{notice}<button onClick={() => setNotice('')}><X size={16}/></button></div>}
 
         <section className="stats-grid">
-          <Stat icon={<Package/>} label="عدد الأصناف" value={totals.items}/>
-          <Stat icon={<Boxes/>} label="إجمالي الكمية" value={totals.quantity}/>
-          <Stat icon={<CheckCircle2/>} label="المتاح للاستخدام" value={totals.available}/>
-          <Stat icon={<AlertTriangle/>} label="التالف" value={totals.damaged} tone="warning"/>
-          <Stat icon={<Trash2/>} label="المفقود" value={totals.missing} tone="danger"/>
+          <Stat icon={<Package/>} label="عدد الأصناف (الصفحة)" value={totals.items}/>
+          <Stat icon={<Boxes/>} label="الكمية (الصفحة)" value={totals.quantity}/>
+          <Stat icon={<CheckCircle2/>} label="المتاح (الصفحة)" value={totals.available}/>
+          <Stat icon={<AlertTriangle/>} label="التالف (الصفحة)" value={totals.damaged} tone="warning"/>
+          <Stat icon={<Trash2/>} label="المفقود (الصفحة)" value={totals.missing} tone="danger"/>
         </section>
 
         <section className="panel">
           <div className="panel-heading"><div><h3>سجل الأدوات</h3><p>بيانات الجرد حسب الفرع</p></div><button className="button button-light" onClick={() => loadData(session, page, branchFilter)}><RefreshCw size={16}/> تحديث البيانات</button></div>
           <div className="filters">
-            <label className="search-box"><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="ابحث باسم الصنف أو الكود أو الفرع..."/></label>
+            <label className="search-box"><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="ابحث باسم الصنف أو الكود في جميع السجلات..."/></label>
             {isCentral && <label className="select-wrap"><Building2 size={17}/><select value={branchFilter} onChange={e => { const next = e.target.value; setBranchFilter(next); setPage(0); loadData(session, 0, next) }}><option value="all">كل الفروع</option>{branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select><ChevronDown size={15}/></label>}
             <label className="select-wrap"><select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}><option value="all">كل التصنيفات</option>{categories.map(c => <option key={c} value={c}>{c}</option>)}</select><ChevronDown size={15}/></label>
           </div>
