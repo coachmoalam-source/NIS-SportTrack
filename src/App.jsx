@@ -312,7 +312,7 @@ function App() {
     if (imageFile) {
       if (!['image/jpeg','image/png','image/webp'].includes(imageFile.type) || imageFile.size > 10 * 1024 * 1024) { setError('يرجى اختيار صورة JPG أو PNG أو WEBP بحجم لا يتجاوز 10 ميجابايت.'); setSaving(false); return }
       const extension = imageFile.type === 'image/png' ? 'png' : imageFile.type === 'image/webp' ? 'webp' : 'jpg'
-      const storagePath = branchIdForUpload + '/' + crypto.randomUUID() + '.' + extension
+      const storagePath = 'equipment/' + crypto.randomUUID() + '.' + extension
       const { error: uploadError } = await supabase.storage.from('nis-sporttrack-evidence').upload(storagePath, imageFile, { contentType: imageFile.type, upsert: false })
       if (uploadError) { setError('تعذر رفع الصورة: ' + uploadError.message); setSaving(false); return }
       savedPhoto = 'storage:' + storagePath
@@ -494,7 +494,7 @@ function App() {
           <label className="field">الكمية الإجمالية *<input type="number" min="0" required value={form.quantity} onChange={e=>setForm({...form,quantity:e.target.value})}/></label>
           <label className="field">التالف<input type="number" min="0" required value={form.damaged_quantity} onChange={e=>setForm({...form,damaged_quantity:e.target.value})}/></label>
           <label className="field">المفقود<input type="number" min="0" required value={form.missing_quantity} onChange={e=>setForm({...form,missing_quantity:e.target.value})}/></label>
-          <label className="field full">صورة الأداة<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => { const file=e.target.files?.[0] || null; setImageFile(file); setImagePreview(file ? URL.createObjectURL(file) : (editing?.image_url || "")) }}/><small className="field-hint">ارفع الصورة مباشرة من جهازك — JPG أو PNG أو WEBP، بحد أقصى 10 ميجابايت. لا حاجة لإدخال رابط.</small>{imagePreview && <img className="upload-preview" src={imagePreview} alt="معاينة صورة الأداة"/>}</label>
+          {isCentral && <label className="field full">صورة الأداة<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => { const file=e.target.files?.[0] || null; setImageFile(file); setImagePreview(file ? URL.createObjectURL(file) : (editing?.image_url || "")) }}/><small className="field-hint">ارفع الصورة مباشرة من جهازك — JPG أو PNG أو WEBP، بحد أقصى 10 ميجابايت. لا حاجة لإدخال رابط.</small>{imagePreview && <img className="upload-preview" src={imagePreview} alt="معاينة صورة الأداة"/>}</label>}
           <label className="field full">ملاحظات<textarea rows="3" value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} placeholder="أي تفاصيل إضافية عن حالة الأداة..."/></label>
         </div>
         <div className="modal-actions"><button type="button" className="button button-light" onClick={()=>setModalOpen(false)}>إلغاء</button><button className="button button-primary" disabled={saving}>{saving ? 'جارٍ الحفظ...' : 'حفظ البيانات'}</button></div>
