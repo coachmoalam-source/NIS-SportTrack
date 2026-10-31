@@ -85,6 +85,8 @@ function App() {
   }, [])
 
   const isCentral = profile?.role === 'super_admin'
+  const isExecutive = profile?.role === 'executive_admin'
+  const canViewAllBranches = isCentral || isExecutive
   const canManage = isCentral || profile?.role === 'branch_manager'
   const ownBranchId = profile?.branch_id
 
@@ -119,7 +121,7 @@ function App() {
       const pattern = '%' + searchTerm + '%'
       query = query.or('name.ilike.' + pattern + ',item_code.ilike.' + pattern, { foreignTable: 'equipment' })
     }
-    if (profileResult.data.role !== 'super_admin') {
+    if (!['super_admin', 'executive_admin'].includes(profileResult.data.role)) {
       if (!profileResult.data.branch_id) {
         setItems([])
         setTotalRows(0)
@@ -137,7 +139,7 @@ function App() {
     let totalsQuery = supabase.from('inventory')
       .select('quantity, damaged_quantity, missing_quantity', { count: 'exact' })
       .range(0, 999)
-    if (profileResult.data.role !== 'super_admin') {
+    if (!['super_admin', 'executive_admin'].includes(profileResult.data.role)) {
       totalsQuery = totalsQuery.eq('branch_id', profileResult.data.branch_id)
     } else if (requestedBranch !== 'all') {
       totalsQuery = totalsQuery.eq('branch_id', requestedBranch)
@@ -152,7 +154,7 @@ function App() {
         : await supabase.from('inventory')
             .select('quantity, damaged_quantity, missing_quantity', { count: 'exact' })
             .range(totalsPage * 1000, (totalsPage + 1) * 1000 - 1)
-            .match(profileResult.data.role !== 'super_admin'
+            .match(!['super_admin', 'executive_admin'].includes(profileResult.data.role)
               ? { branch_id: profileResult.data.branch_id }
               : requestedBranch !== 'all' ? { branch_id: requestedBranch } : {})
       if (batchError) { totalsError = batchError; break }
@@ -259,7 +261,7 @@ function App() {
   }), [filteredItems, sortConfig])
 
   const inventoryColumnDefs = [
-    {key:'item',label:'الصنف'}, ...(isCentral ? [{key:'branch',label:'الفرع'}] : []),
+    {key:'item',label:'الصنف'}, ...(canViewAllBranches ? [{key:'branch',label:'الفرع'}] : []),
     {key:'category',label:'التصنيف'}, {key:'quantity',label:'الكمية'}, {key:'damaged',label:'التالف'},
     {key:'missing',label:'المفقود'}, {key:'available',label:'المتاح'}, {key:'updated',label:'آخر تحديث'}
   ]
@@ -495,7 +497,7 @@ function App() {
         <button className={activeSection === 'inventory' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('inventory')}><ClipboardList size={18}/> {t('إدارة المخزون','Inventory')}</button>
         <button className={activeSection === 'audits' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('audits')}><Activity size={18}/> {t('الجرد الدوري','Periodic Audits')}</button>
         <button className={activeSection === 'services' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('services')}><Wrench size={18}/> {t('الصيانة والتالف','Maintenance & Damage')}</button>
-        {isCentral && <>
+        {canViewAllBranches && <>
           <button className={activeSection === 'comparison' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('comparison')}><Building2 size={18}/> {t('مقارنة الفروع','Branch Comparison')}</button>
           <button className={activeSection === 'reports' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('reports')}><ClipboardList size={18}/> {t('تقارير الفروع','Branch Reports')}</button>
         </>}
@@ -507,7 +509,7 @@ function App() {
       <main className="main-content">
         <header className="topbar">
           <div><div className="eyebrow">NIS • PHYSICAL EDUCATION</div><h1>{t('إدارة أدوات التربية الرياضية','PE Equipment Management')}</h1></div>
-          <div className="user-area"><div className="avatar"><CircleUserRound size={21}/></div><div className="user-copy"><strong>{profile?.full_name || session.user.email}</strong><small>{isCentral ? t('مسؤول مركزي','Central Administrator') : t('مسؤول فرع','Branch Administrator')}</small></div><button className="icon-button" onClick={signOut} title="تسجيل الخروج"><LogOut size={18}/></button></div>
+          <div className="user-area"><div className="avatar"><CircleUserRound size={21}/></div><div className="user-copy"><strong>{profile?.full_name || session.user.email}</strong><small>{isCentral ? t('مسؤول مركزي','Central Administrator') : isExecutive ? t('إدارة تنفيذية','Executive Administrator') : t('مسؤول فرع','Branch Administrator')}</small></div><button className="icon-button" onClick={signOut} title="تسجيل الخروج"><LogOut size={18}/></button></div>
         </header>
 
         <section className="welcome-row">
@@ -531,7 +533,7 @@ function App() {
           <div className="panel-heading"><div><h3>{t('سجل الأدوات','Equipment Register')}</h3><p>{t('بيانات الجرد حسب الفرع','Inventory records by branch')} {inventoryFocus !== 'all' && <button className="inline-clear-filter" onClick={() => setInventoryFocus('all')}>إلغاء التصفية ×</button>}</p></div><button className="button button-light" onClick={() => loadData(session, page, branchFilter, search)}><RefreshCw size={16}/> {t('تحديث البيانات','Refresh Data')}</button></div>
           <div className="filters">
             <label className="search-box"><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="ابحث في جميع سجلات المخزون باسم الصنف أو الكود..."/></label>
-            {isCentral && <label className="select-wrap"><Building2 size={17}/><select value={branchFilter} onChange={e => { const next = e.target.value; setBranchFilter(next); setPage(0); loadData(session, 0, next, search) }}><option value="all">{t('كل الفروع','All Branches')}</option>{branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select><ChevronDown size={15}/></label>}
+            {canViewAllBranches && <label className="select-wrap"><Building2 size={17}/><select value={branchFilter} onChange={e => { const next = e.target.value; setBranchFilter(next); setPage(0); loadData(session, 0, next, search) }}><option value="all">{t('كل الفروع','All Branches')}</option>{branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select><ChevronDown size={15}/></label>}
             <label className="select-wrap"><select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}><option value="all">{t('كل التصنيفات','All Categories')}</option>{categories.map(c => <option key={c} value={c}>{c}</option>)}</select><ChevronDown size={15}/></label>
           </div>
           <div className="inventory-table-tools">
@@ -546,7 +548,7 @@ function App() {
             <table className="inventory-data-table">
               <thead><tr>
                 {isColumnVisible('item') && <th><button className="table-sort" onClick={()=>sortBy('item')}>الصنف <ArrowUpDown size={13}/></button></th>}
-                {isCentral && isColumnVisible('branch') && <th><button className="table-sort" onClick={()=>sortBy('branch')}>الفرع <ArrowUpDown size={13}/></button></th>}
+                {canViewAllBranches && isColumnVisible('branch') && <th><button className="table-sort" onClick={()=>sortBy('branch')}>الفرع <ArrowUpDown size={13}/></button></th>}
                 {isColumnVisible('category') && <th><button className="table-sort" onClick={()=>sortBy('category')}>التصنيف <ArrowUpDown size={13}/></button></th>}
                 {isColumnVisible('quantity') && <th><button className="table-sort" onClick={()=>sortBy('quantity')}>الكمية <ArrowUpDown size={13}/></button></th>}
                 {isColumnVisible('damaged') && <th><button className="table-sort" onClick={()=>sortBy('damaged')}>التالف <ArrowUpDown size={13}/></button></th>}
@@ -560,7 +562,7 @@ function App() {
                   sortedFilteredItems.length === 0 ? <tr><td colSpan={inventoryColumnDefs.filter(col=>isColumnVisible(col.key)).length+1} className="empty-state"><Package size={28}/><strong>لا توجد أصناف لعرضها</strong><span>ابدأ بإضافة أول صنف إلى سجل المخزون.</span></td></tr> :
                   sortedFilteredItems.map(item => <tr key={item.id}>
                     {isColumnVisible('item') && <td><div className="item-cell">{item.image_url ? <img src={item.image_url} alt="" onError={e => {e.currentTarget.style.display='none'}}/> : <div className="item-placeholder"><Package size={18}/></div>}<div><strong>{item.item_name}</strong><small>{item.item_code || 'بدون كود'}</small></div></div></td>}
-                    {isCentral && isColumnVisible('branch') && <td>{item.branches?.name || '—'}</td>}
+                    {canViewAllBranches && isColumnVisible('branch') && <td>{item.branches?.name || '—'}</td>}
                     {isColumnVisible('category') && <td>{item.category || '—'}</td>}
                     {isColumnVisible('quantity') && <td className="numeric">{item.quantity} {item.unit}</td>}
                     {isColumnVisible('damaged') && <td><span className="number-pill warning">{item.damaged_quantity}</span></td>}
@@ -576,10 +578,10 @@ function App() {
           <div className="table-footer"><span>{inventoryFocus !== 'all' ? `عرض ${inventoryFocus === 'available' ? 'الأدوات المتاحة' : inventoryFocus === 'damaged' ? 'الأدوات التالفة' : 'الأدوات المفقودة'} — ` : ''}المعروض {filteredItems.length} من إجمالي {totalRows} سجلًا — البحث الشامل في جميع السجلات، والتصنيف والترتيب ضمن الصفحة المعروضة</span><div className="pagination"><button className="button button-light" disabled={page === 0 || loading} onClick={() => { const next = page - 1; setPage(next); loadData(session, next, branchFilter, search) }}>السابق</button><span>صفحة {page + 1}</span><button className="button button-light" disabled={!hasMore || loading} onClick={() => { const next = page + 1; setPage(next); loadData(session, next, branchFilter, search) }}>التالي</button></div></div>
         </section>
         </>}
-        {activeSection === 'audits' && <PeriodicAudits profile={profile} branches={branches} isCentral={isCentral} onNotice={setNotice} onError={setError}/>}
+        {activeSection === 'audits' && <PeriodicAudits profile={profile} branches={branches} isCentral={isCentral} canReview={canViewAllBranches} onNotice={setNotice} onError={setError}/>}
         {activeSection === 'services' && <DamageMaintenance profile={profile} branches={branches} isCentral={isCentral} onNotice={setNotice} onError={setError}/>}
-        {activeSection === 'comparison' && isCentral && <BranchComparison branches={branches} onError={setError}/ >}
-        {activeSection === 'reports' && isCentral && <InventoryReports branches={branches} onError={setError}/ >}
+        {activeSection === 'comparison' && canViewAllBranches && <BranchComparison branches={branches} onError={setError}/ >}
+        {activeSection === 'reports' && canViewAllBranches && <InventoryReports branches={branches} onError={setError}/ >}
         {activeSection === 'settings' && <Settings session={session} profile={profile} isCentral={isCentral} onError={setError} onNotice={setNotice} onProfileUpdated={setProfile}/ >}
         <footer className="footer">NIS SportTrack <span>•</span> Physical Education Department</footer>
       </main>
