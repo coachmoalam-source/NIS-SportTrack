@@ -33,7 +33,12 @@ function App() {
   const canManage = isCentral || profile?.role === 'branch_manager'
   const ownBranchId = profile?.branch_id
 
-  const loadData = useCallback(async (activeSession = session) => {
+  const PAGE_SIZE = 50
+  const [page, setPage] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
+  const [totalRows, setTotalRows] = useState(0)
+
+  const loadData = useCallback(async (activeSession = session, requestedPage = page, requestedBranch = branchFilter) => {
     if (!activeSession || !supabase) return
     setLoading(true)
     setError('')
@@ -50,20 +55,29 @@ function App() {
     setProfile(profileResult.data)
     setBranches(branchResult.data || [])
     let query = supabase.from('inventory')
-      .select('id, branch_id, quantity, damaged_quantity, missing_quantity, notes, updated_at, branches!inventory_branch_id_fkey(name), equipment!inventory_equipment_id_fkey(id, name, item_code, photo_url, unit, categories!equipment_category_id_fkey(name))')
+      .select('id, branch_id, quantity, damaged_quantity, missing_quantity, notes, updated_at, branches!inventory_branch_id_fkey(name), equipment!inventory_equipment_id_fkey(id, name, item_code, photo_url, unit, categories!equipment_category_id_fkey(name))', { count: 'exact' })
       .order('updated_at', { ascending: false })
+      .range(requestedPage * PAGE_SIZE, (requestedPage + 1) * PAGE_SIZE - 1)
     if (profileResult.data.role !== 'super_admin') {
       if (!profileResult.data.branch_id) {
         setItems([])
+        setTotalRows(0)
+        setHasMore(false)
         setError('حسابك غير مرتبط بفرع. اطلب من مسؤول النظام تحديد branch_id في جدول profiles.')
         setLoading(false)
         return
       }
       query = query.eq('branch_id', profileResult.data.branch_id)
+    } else if (requestedBranch !== 'all') {
+      query = query.eq('branch_id', requestedBranch)
     }
-    const { data, error: itemsError } = await query
-    if (itemsError) setError(itemsError.message)
-    const mapped = (data || []).map(row => ({
+    const { data, error: itemsError, count } = await query
+    if (itemsError) {
+      setError(itemsError.message)
+      setLoading(false)
+      return
+    }
+    setItems((data || []).map(row => ({
       ...row,
       item_name: row.equipment?.name || 'صنف غير معروف',
       item_code: row.equipment?.item_code || '',
@@ -71,25 +85,42 @@ function App() {
       image_url: row.equipment?.photo_url || '',
       unit: row.equipment?.unit || 'قطعة',
       equipment_id: row.equipment?.id
-    }))
-    setItems(mapped)
+    })))
+    setTotalRows(count || 0)
+    setHasMore((requestedPage + 1) * PAGE_SIZE < (count || 0))
     setLoading(false)
-  }, [session])
+  }, [session, page, branchFilter])
 
   useEffect(() => {
     if (!supabase) { setLoading(false); return }
-    supabase.auth.getSession().then(({ data }) => {
+    let mounted = true
+    let initialSessionResolved = false
+    supabase.auth.getSession().then(({ data, error: sessionError }) => {
+      if (!mounted) return
+      if (sessionError) setError(sessionError.message)
+      initialSessionResolved = true
       setSession(data.session)
-      if (data.session) loadData(data.session)
+      if (data.session) loadData(data.session, 0, 'all')
       else setLoading(false)
     })
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!mounted) return
       setSession(nextSession)
-      if (nextSession) loadData(nextSession)
-      else { setProfile(null); setItems([]); setLoading(false) }
+      if (nextSession) {
+        if (initialSessionResolved) loadData(nextSession, 0, 'all')
+      } else {
+        setProfile(null)
+        setItems([])
+        setTotalRows(0)
+        setHasMore(false)
+        setLoading(false)
+      }
     })
-    return () => listener.subscription.unsubscribe()
-  }, [loadData])
+    return () => {
+      mounted = false
+      listener.subscription.unsubscribe()
+    }
+  }, [])
 
   const filteredItems = useMemo(() => items.filter(item => {
     const term = search.trim().toLowerCase()
@@ -235,7 +266,7 @@ function App() {
     else {
       setNotice(editing ? 'تم تحديث بيانات الصنف.' : 'تمت إضافة الصنف بنجاح.')
       setModalOpen(false)
-      await loadData()
+      await loadData(session, page, branchFilter)
     }
     setSaving(false)
   }
@@ -245,7 +276,7 @@ function App() {
     if (!window.confirm(`هل أنت متأكد من حذف الصنف «${item.item_name}»؟`)) return
     const { error: deleteError } = await supabase.from('inventory').delete().eq('id', item.id)
     if (deleteError) setError(deleteError.message)
-    else { setNotice('تم حذف الصنف.'); await loadData() }
+    else { setNotice('تم حذف الصنف.'); await loadData(session, page, branchFilter) }
   }
 
   if (!isSupabaseConfigured) return <SetupScreen />
@@ -285,10 +316,10 @@ function App() {
         </section>
 
         <section className="panel">
-          <div className="panel-heading"><div><h3>سجل الأدوات</h3><p>بيانات الجرد حسب الفرع</p></div><button className="button button-light" onClick={() => loadData()}><RefreshCw size={16}/> تحديث البيانات</button></div>
+          <div className="panel-heading"><div><h3>سجل الأدوات</h3><p>بيانات الجرد حسب الفرع</p></div><button className="button button-light" onClick={() => loadData(session, page, branchFilter)}><RefreshCw size={16}/> تحديث البيانات</button></div>
           <div className="filters">
             <label className="search-box"><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="ابحث باسم الصنف أو الكود أو الفرع..."/></label>
-            {isCentral && <label className="select-wrap"><Building2 size={17}/><select value={branchFilter} onChange={e => setBranchFilter(e.target.value)}><option value="all">كل الفروع</option>{branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select><ChevronDown size={15}/></label>}
+            {isCentral && <label className="select-wrap"><Building2 size={17}/><select value={branchFilter} onChange={e => { const next = e.target.value; setBranchFilter(next); setPage(0); loadData(session, 0, next) }}><option value="all">كل الفروع</option>{branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select><ChevronDown size={15}/></label>}
             <label className="select-wrap"><select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}><option value="all">كل التصنيفات</option>{categories.map(c => <option key={c} value={c}>{c}</option>)}</select><ChevronDown size={15}/></label>
           </div>
           <div className="table-wrap">
@@ -311,7 +342,7 @@ function App() {
               </tbody>
             </table>
           </div>
-          <div className="table-footer"><span>عدد النتائج: {filteredItems.length}</span><span>آخر تحديث حسب بيانات قاعدة البيانات</span></div>
+          <div className="table-footer"><span>المعروض {items.length} من إجمالي {totalRows} سجلًا — البحث والتصنيف ضمن الصفحة الحالية</span><div className="pagination"><button className="button button-light" disabled={page === 0 || loading} onClick={() => { const next = page - 1; setPage(next); loadData(session, next, branchFilter) }}>السابق</button><span>صفحة {page + 1}</span><button className="button button-light" disabled={!hasMore || loading} onClick={() => { const next = page + 1; setPage(next); loadData(session, next, branchFilter) }}>التالي</button></div></div>
         </section>
         <footer className="footer">NIS SportTrack <span>•</span> Physical Education Department</footer>
       </main>
