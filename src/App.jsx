@@ -50,7 +50,7 @@ function App() {
     setProfile(profileResult.data)
     setBranches(branchResult.data || [])
     let query = supabase.from('inventory')
-      .select('id, branch_id, quantity, damaged_quantity, missing_quantity, notes, updated_at, branches!inventory_branch_id_fkey(name), equipment!inventory_equipment_id_fkey(id, name, item_code, description, photo_url, unit, categories!equipment_category_id_fkey(name))')
+      .select('id, branch_id, quantity, damaged_quantity, missing_quantity, notes, updated_at, branches!inventory_branch_id_fkey(name), equipment!inventory_equipment_id_fkey(id, name, item_code, photo_url, unit, categories!equipment_category_id_fkey(name))')
       .order('updated_at', { ascending: false })
     if (profileResult.data.role !== 'super_admin') {
       if (!profileResult.data.branch_id) {
@@ -170,19 +170,22 @@ function App() {
       let categoryId = null
       const categoryName = form.category.trim()
       if (categoryName) {
-        const { data: foundCategory, error: categoryLookupError } = await supabase
-          .from('categories').select('id').eq('name', categoryName).maybeSingle()
-        if (categoryLookupError) {
-          setError(categoryLookupError.message); setSaving(false); return
+        const { data: categoryRow, error: categoryError } = await supabase
+          .from('categories')
+          .upsert({ name: categoryName }, { onConflict: 'name', ignoreDuplicates: true })
+          .select('id')
+          .maybeSingle()
+        if (categoryError) {
+          setError(categoryError.message); setSaving(false); return
         }
-        if (foundCategory) categoryId = foundCategory.id
-        else if (isCentral) {
-          const { data: createdCategory, error: categoryCreateError } = await supabase
-            .from('categories').insert({ name: categoryName }).select('id').single()
-          if (categoryCreateError) {
-            setError(categoryCreateError.message); setSaving(false); return
+        if (categoryRow) categoryId = categoryRow.id
+        else {
+          const { data: existingCategory, error: lookupError } = await supabase
+            .from('categories').select('id').eq('name', categoryName).single()
+          if (lookupError) {
+            setError(lookupError.message); setSaving(false); return
           }
-          categoryId = createdCategory.id
+          categoryId = existingCategory.id
         }
       }
 
@@ -221,19 +224,13 @@ function App() {
       }
     }
 
-    let result
-    if (editing) {
-      result = await supabase.from('inventory').update(stockPayload).eq('id', editing.id)
-    } else {
-      const { data: existingStock, error: stockLookupError } = await supabase
-        .from('inventory').select('id').eq('branch_id', branchId).eq('equipment_id', equipmentId).maybeSingle()
-      if (stockLookupError) {
-        setError(stockLookupError.message); setSaving(false); return
-      }
-      result = existingStock
-        ? await supabase.from('inventory').update(stockPayload).eq('id', existingStock.id)
-        : await supabase.from('inventory').insert({ ...stockPayload, equipment_id: equipmentId })
-    }
+    const result = editing
+      ? await supabase.from('inventory').update(stockPayload).eq('id', editing.id)
+      : await supabase.from('inventory')
+          .upsert(
+            { ...stockPayload, equipment_id: equipmentId },
+            { onConflict: 'branch_id,equipment_id' }
+          )
     if (result.error) setError(result.error.message)
     else {
       setNotice(editing ? 'تم تحديث بيانات الصنف.' : 'تمت إضافة الصنف بنجاح.')
