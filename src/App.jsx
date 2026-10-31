@@ -487,7 +487,7 @@ function App() {
         </section>
         </>}
         {activeSection === 'audits' && <PeriodicAudits profile={profile} branches={branches} isCentral={isCentral} onNotice={setNotice} onError={setError}/>}
-        {activeSection === 'services' && <DamageMaintenance profile={profile} branches={branches} isCentral={isCentral} onNotice={setNotice} onError={setError}/ >}
+        {activeSection === 'services' && <DamageMaintenance profile={profile} branches={branches} isCentral={isCentral} onNotice={setNotice} onError={setError}/>}
         <footer className="footer">NIS SportTrack <span>•</span> Physical Education Department</footer>
       </main>
 
