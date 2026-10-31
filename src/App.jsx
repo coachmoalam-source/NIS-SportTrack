@@ -344,7 +344,49 @@ function Stat({ icon, label, value, tone='' }) {
 }
 
 function LoginScreen({ email, setEmail, password, setPassword, onSubmit, loading, error }) {
-  return <div className="login-screen"><div className="login-card"><div className="login-logo"><Boxes size={30}/></div><div className="eyebrow">NIS • PHYSICAL EDUCATION</div><h1>NIS SportTrack</h1><p>منصة إدارة ومتابعة أدوات التربية الرياضية في جميع الفروع</p>{error && <div className="alert alert-error">{error}</div>}<form onSubmit={onSubmit}><label className="field">البريد الإلكتروني<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@school.com"/></label><label className="field">كلمة المرور<input type="password" required value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••"/></label><button className="button button-primary login-button" disabled={loading}>{loading ? 'جارٍ الدخول...' : 'تسجيل الدخول'}</button></form><small className="login-note">يتم إنشاء الحسابات وإدارة صلاحياتها بواسطة مسؤول النظام.</small></div></div>
+  return (
+    <div className="login-screen">
+      <section className="login-showcase" aria-label="NIS SportTrack">
+        <div className="showcase-ribbon ribbon-one" />
+        <div className="showcase-ribbon ribbon-two" />
+        <div className="nis-lockup">
+          <div className="nis-emblem"><span>NIS</span><i /></div>
+          <div className="nis-school-name">NATIONAL<br/>INTERNATIONAL<br/>SCHOOLS</div>
+        </div>
+        <div className="showcase-copy">
+          <span className="showcase-kicker">NIS • PHYSICAL EDUCATION</span>
+          <h2>Move with purpose.<br/><em>Manage with excellence.</em></h2>
+          <p>منصة موحدة لإدارة ومتابعة أدوات التربية الرياضية في جميع فروع مدارس NIS.</p>
+        </div>
+        <div className="sports-stage" aria-hidden="true">
+          <div className="sport-orbit orbit-a"/><div className="sport-orbit orbit-b"/>
+          <div className="sport-ball ball-football">⚽</div><div className="sport-ball ball-basket">🏀</div>
+          <div className="sport-ball ball-volley">🏐</div><div className="sport-ball ball-tennis">🎾</div>
+          <div className="sport-trophy">🏆</div>
+        </div>
+        <div className="showcase-footer"><span>MANAGE</span><b>•</b><span>TRACK</span><b>•</b><span>ACHIEVE</span></div>
+      </section>
+      <section className="login-panel">
+        <div className="login-card">
+          <div className="login-card-brand"><div className="login-logo"><Boxes size={27}/></div><span>WELCOME TO</span></div>
+          <div className="eyebrow">NIS • PHYSICAL EDUCATION</div>
+          <h1>NIS <em>SportTrack</em></h1>
+          <p>Physical Education Equipment Management System</p>
+          <div className="login-divider"><span/></div>
+          <h2>تسجيل الدخول</h2>
+          <p className="login-intro">سجّل الدخول لمتابعة وإدارة مخزون أدوات التربية الرياضية.</p>
+          {error && <div className="alert alert-error">{error}</div>}
+          <form onSubmit={onSubmit}>
+            <label className="field">البريد الإلكتروني<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@school.com"/></label>
+            <label className="field">كلمة المرور<input type="password" required value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••"/></label>
+            <button className="button button-primary login-button" disabled={loading}>{loading ? 'جارٍ الدخول...' : 'دخول إلى النظام'} <span>←</span></button>
+          </form>
+          <small className="login-note">يتم إنشاء الحسابات وإدارة صلاحياتها بواسطة مسؤول النظام.</small>
+          <div className="login-signature">NIS PE DEPARTMENT <span>•</span> STRONGER TOGETHER</div>
+        </div>
+      </section>
+    </div>
+  )
 }
 
 function SetupScreen() {
