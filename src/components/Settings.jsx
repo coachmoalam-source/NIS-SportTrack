@@ -128,7 +128,7 @@ export default function Settings({ session, profile, isCentral, onError, onNotic
       </article>
       <article className="settings-card backup-card">
         <h3><Database size={19}/>{t('النسخ الاحتياطي','Data Backup')}</h3>
-        <p>{isCentral?t('تنزيل نسخة بيانات شاملة للنظام والفروع.':'Download a complete backup of system data and all branches.'):t('تنزيل نسخة من بيانات الفرع المرتبط بحسابك.','Download a backup of the branch assigned to your account.')}</p>
+        <p>{isCentral ? t('تنزيل نسخة بيانات شاملة للنظام والفروع.','Download a complete backup of system data and all branches.'):t('تنزيل نسخة من بيانات الفرع المرتبط بحسابك.','Download a backup of the branch assigned to your account.')}</p>
         <button className="button button-primary" onClick={downloadBackup} disabled={backupBusy}>{backupBusy?t('جارٍ تجهيز النسخة...','Preparing backup...'):t('تنزيل النسخة الاحتياطية','Download Backup')}<Download size={17}/></button>
         <small><ShieldCheck size={14}/>{t('النسخة بصيغة JSON وتشمل سجلات المخزون والحركة والبلاغات والصيانة والجرد المتاحة لصلاحيتك.','JSON backup includes inventory, movements, reports, maintenance and audit records permitted by your access.')}</small>
       </article>
