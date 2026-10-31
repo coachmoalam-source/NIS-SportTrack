@@ -29,8 +29,8 @@ function App() {
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
 
-  const isCentral = profile?.role === 'central_admin'
-  const canManage = isCentral || profile?.role === 'branch_admin'
+  const isCentral = profile?.role === 'super_admin'
+  const canManage = isCentral || profile?.role === 'branch_manager'
   const ownBranchId = profile?.branch_id
 
   const loadData = useCallback(async (activeSession = session) => {
@@ -49,10 +49,10 @@ function App() {
     if (branchResult.error) setError(branchResult.error.message)
     setProfile(profileResult.data)
     setBranches(branchResult.data || [])
-    let query = supabase.from('inventory_items')
-      .select('id, branch_id, item_code, item_name, category, quantity, damaged_quantity, missing_quantity, unit, image_url, notes, updated_at, branches(name)')
-      .order('item_name')
-    if (profileResult.data.role !== 'central_admin') {
+    let query = supabase.from('inventory')
+      .select('id, branch_id, quantity, damaged_quantity, missing_quantity, notes, updated_at, branches!inventory_branch_id_fkey(name), equipment!inventory_equipment_id_fkey(id, name, item_code, description, photo_url, unit, categories!equipment_category_id_fkey(name))')
+      .order('updated_at', { ascending: false })
+    if (profileResult.data.role !== 'super_admin') {
       if (!profileResult.data.branch_id) {
         setItems([])
         setError('حسابك غير مرتبط بفرع. اطلب من مسؤول النظام تحديد branch_id في جدول profiles.')
@@ -63,7 +63,16 @@ function App() {
     }
     const { data, error: itemsError } = await query
     if (itemsError) setError(itemsError.message)
-    setItems(data || [])
+    const mapped = (data || []).map(row => ({
+      ...row,
+      item_name: row.equipment?.name || 'صنف غير معروف',
+      item_code: row.equipment?.item_code || '',
+      category: row.equipment?.categories?.name || '',
+      image_url: row.equipment?.photo_url || '',
+      unit: row.equipment?.unit || 'قطعة',
+      equipment_id: row.equipment?.id
+    }))
+    setItems(mapped)
     setLoading(false)
   }, [session])
 
@@ -148,20 +157,83 @@ function App() {
       setSaving(false)
       return
     }
-    const payload = {
-      ...form,
+    const stockPayload = {
+      branch_id: branchId,
       quantity: number(form.quantity),
       damaged_quantity: number(form.damaged_quantity),
       missing_quantity: number(form.missing_quantity),
-      branch_id: branchId,
-      item_code: form.item_code.trim() || null,
-      category: form.category.trim() || null,
-      image_url: form.image_url.trim() || null,
       notes: form.notes.trim() || null
     }
-    const result = editing
-      ? await supabase.from('inventory_items').update(payload).eq('id', editing.id)
-      : await supabase.from('inventory_items').insert(payload)
+    let equipmentId = editing?.equipment_id || null
+
+    if (!editing || isCentral) {
+      let categoryId = null
+      const categoryName = form.category.trim()
+      if (categoryName) {
+        const { data: foundCategory, error: categoryLookupError } = await supabase
+          .from('categories').select('id').eq('name', categoryName).maybeSingle()
+        if (categoryLookupError) {
+          setError(categoryLookupError.message); setSaving(false); return
+        }
+        if (foundCategory) categoryId = foundCategory.id
+        else if (isCentral) {
+          const { data: createdCategory, error: categoryCreateError } = await supabase
+            .from('categories').insert({ name: categoryName }).select('id').single()
+          if (categoryCreateError) {
+            setError(categoryCreateError.message); setSaving(false); return
+          }
+          categoryId = createdCategory.id
+        }
+      }
+
+      const equipmentPayload = {
+        name: form.item_name.trim(),
+        item_code: form.item_code.trim() || null,
+        description: form.notes.trim() || null,
+        photo_url: form.image_url.trim() || null,
+        unit: form.unit.trim() || 'Piece',
+        category_id: categoryId
+      }
+
+      if (editing && isCentral) {
+        const { error: equipmentError } = await supabase.from('equipment')
+          .update(equipmentPayload).eq('id', equipmentId)
+        if (equipmentError) {
+          setError(equipmentError.message); setSaving(false); return
+        }
+      } else if (!editing) {
+        if (isCentral) {
+          const { data: createdEquipment, error: equipmentError } = await supabase
+            .from('equipment').insert(equipmentPayload).select('id').single()
+          if (equipmentError) {
+            setError(equipmentError.message); setSaving(false); return
+          }
+          equipmentId = createdEquipment.id
+        } else {
+          const { data: existingEquipment, error: equipmentLookupError } = await supabase
+            .from('equipment').select('id').eq('name', equipmentPayload.name).maybeSingle()
+          if (equipmentLookupError || !existingEquipment) {
+            setError('هذا الصنف غير مسجل في دليل الأدوات. اطلب من المسؤول المركزي إضافته أولاً.')
+            setSaving(false); return
+          }
+          equipmentId = existingEquipment.id
+        }
+      }
+    }
+
+    let result
+    if (editing) {
+      result = await supabase.from('inventory').update(stockPayload).eq('id', editing.id)
+    } else {
+      const { data: existingStock, error: stockLookupError } = await supabase
+        .from('inventory').select('id').eq('branch_id', branchId).eq('equipment_id', equipmentId).maybeSingle()
+      if (stockLookupError) {
+        setError(stockLookupError.message); setSaving(false); return
+      }
+      result = existingStock
+        ? await supabase.from('inventory').update(stockPayload).eq('id', existingStock.id)
+        : await supabase.from('inventory').insert({ ...stockPayload, equipment_id: equipmentId })
+    }
     if (result.error) setError(result.error.message)
     else {
       setNotice(editing ? 'تم تحديث بيانات الصنف.' : 'تمت إضافة الصنف بنجاح.')
@@ -174,7 +246,7 @@ function App() {
   async function deleteItem(item) {
     if (!isCentral) return
     if (!window.confirm(`هل أنت متأكد من حذف الصنف «${item.item_name}»؟`)) return
-    const { error: deleteError } = await supabase.from('inventory_items').delete().eq('id', item.id)
+    const { error: deleteError } = await supabase.from('inventory').delete().eq('id', item.id)
     if (deleteError) setError(deleteError.message)
     else { setNotice('تم حذف الصنف.'); await loadData() }
   }
