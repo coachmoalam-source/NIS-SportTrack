@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Activity, AlertTriangle, Wrench, ArrowDownToLine, ArrowUpFromLine, Boxes,
   Building2, CheckCircle2, ChevronDown, CircleUserRound, ClipboardList,
-  LogOut, Package, Plus, RefreshCw, Search, ShieldCheck, Trash2, X
+  LogOut, Package, Plus, RefreshCw, Search, ShieldCheck, Trash2, X, Download, Printer, SlidersHorizontal, ArrowUpDown
 } from 'lucide-react'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
 import PeriodicAudits from './components/PeriodicAudits'
@@ -71,6 +71,8 @@ function App() {
   const [imagePreview, setImagePreview] = useState('')
   const [activeSection, setActiveSection] = useState('inventory')
   const [inventoryFocus, setInventoryFocus] = useState('all')
+  const [visibleColumns, setVisibleColumns] = useState(['item','branch','category','quantity','damaged','missing','available','updated'])
+  const [sortConfig, setSortConfig] = useState({ key: 'item_name', direction: 'asc' })
 
   const isCentral = profile?.role === 'super_admin'
   const canManage = isCentral || profile?.role === 'branch_manager'
@@ -224,7 +226,42 @@ function App() {
     return matchesSearch && matchesBranch && matchesCategory && matchesFocus
   }), [items, search, branchFilter, categoryFilter, inventoryFocus])
 
-  const categories = [...new Set(items.map(item => item.category).filter(Boolean))]
+  const sortedFilteredItems = useMemo(() => [...filteredItems].sort((a,b) => {
+    const key = sortConfig.key
+    let av = key === 'branch_name' ? (a.branches?.name || '') : key === 'available' ? Math.max(0,number(a.quantity)-number(a.damaged_quantity)-number(a.missing_quantity)) : a[key]
+    let bv = key === 'branch_name' ? (b.branches?.name || '') : key === 'available' ? Math.max(0,number(b.quantity)-number(b.damaged_quantity)-number(b.missing_quantity)) : b[key]
+    if (typeof av === 'number' || typeof bv === 'number') return (number(av)-number(bv)) * (sortConfig.direction === 'asc' ? 1 : -1)
+    return String(av || '').localeCompare(String(bv || ''), 'ar', {numeric:true}) * (sortConfig.direction === 'asc' ? 1 : -1)
+  }), [filteredItems, sortConfig])
+
+  const inventoryColumnDefs = [
+    {key:'item',label:'الصنف'}, ...(isCentral ? [{key:'branch',label:'الفرع'}] : []),
+    {key:'category',label:'التصنيف'}, {key:'quantity',label:'الكمية'}, {key:'damaged',label:'التالف'},
+    {key:'missing',label:'المفقود'}, {key:'available',label:'المتاح'}, {key:'updated',label:'آخر تحديث'}
+  ]
+  const isColumnVisible = key => visibleColumns.includes(key)
+  const toggleColumn = key => setVisibleColumns(current => current.includes(key) ? current.filter(v=>v!==key) : [...current,key])
+  const sortBy = key => {
+    const field = key === 'item' ? 'item_name' : key === 'branch' ? 'branch_name' : key === 'category' ? 'category' : key === 'quantity' ? 'quantity' : key === 'damaged' ? 'damaged_quantity' : key === 'missing' ? 'missing_quantity' : key === 'available' ? 'available' : 'updated_at'
+    setSortConfig(current => ({key:field,direction:current.key===field && current.direction==='asc'?'desc':'asc'}))
+  }
+  const exportInventoryCsv = () => {
+    const columns = inventoryColumnDefs.filter(col=>isColumnVisible(col.key))
+    const valueFor = (item,key) => ({
+      item: item.item_name, branch: item.branches?.name || '', category: item.category || '',
+      quantity: item.quantity, damaged: item.damaged_quantity, missing: item.missing_quantity,
+      available: Math.max(0,number(item.quantity)-number(item.damaged_quantity)-number(item.missing_quantity)),
+      updated: formatDate(item.updated_at)
+    }[key])
+    const escapeCsv = value => '"' + String(value ?? '').replace(/"/g,'""') + '"'
+    const csv = '\\uFEFF' + [columns.map(col=>escapeCsv(col.label)).join(','), ...sortedFilteredItems.map(item=>columns.map(col=>escapeCsv(valueFor(item,col.key))).join(','))].join('\\r\\n')
+    const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'})
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href=url; link.download='NIS-SportTrack-Inventory.csv'; link.click()
+    URL.revokeObjectURL(url)
+  }
+\n  const categories = [...new Set(items.map(item => item.category).filter(Boolean))]
 
   useEffect(() => {
     if (!modalOpen || editing || !isCentral) {
@@ -464,31 +501,50 @@ function App() {
         <section className="panel">
           <div className="panel-heading"><div><h3>سجل الأدوات</h3><p>بيانات الجرد حسب الفرع {inventoryFocus !== 'all' && <button className="inline-clear-filter" onClick={() => setInventoryFocus('all')}>إلغاء التصفية ×</button>}</p></div><button className="button button-light" onClick={() => loadData(session, page, branchFilter)}><RefreshCw size={16}/> تحديث البيانات</button></div>
           <div className="filters">
-            <label className="search-box"><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="ابحث باسم الصنف أو الكود في جميع السجلات..."/></label>
+            <label className="search-box"><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="ابحث باسم الصنف أو الكود في الصفحة الحالية..."/></label>
             {isCentral && <label className="select-wrap"><Building2 size={17}/><select value={branchFilter} onChange={e => { const next = e.target.value; setBranchFilter(next); setPage(0); loadData(session, 0, next) }}><option value="all">كل الفروع</option>{branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select><ChevronDown size={15}/></label>}
             <label className="select-wrap"><select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}><option value="all">كل التصنيفات</option>{categories.map(c => <option key={c} value={c}>{c}</option>)}</select><ChevronDown size={15}/></label>
           </div>
+          <div className="inventory-table-tools">
+            <div className="inventory-tool-group">
+              <details className="column-picker"><summary><SlidersHorizontal size={16}/> الأعمدة الظاهرة</summary><div className="column-picker-menu">{inventoryColumnDefs.map(col=><label key={col.key}><input type="checkbox" checked={isColumnVisible(col.key)} disabled={col.key==='item'} onChange={()=>toggleColumn(col.key)}/>{col.label}</label>)}</div></details>
+              <button className="button button-light" onClick={exportInventoryCsv}><Download size={16}/> تصدير Excel</button>
+              <button className="button button-light" onClick={()=>window.print()}><Printer size={16}/> طباعة</button>
+            </div>
+            <span className="table-result-count">يعرض {sortedFilteredItems.length} سجلًا من الصفحة الحالية</span>
+          </div>
           <div className="table-wrap">
-            <table>
-              <thead><tr><th>الصنف</th>{isCentral && <th>الفرع</th>}<th>التصنيف</th><th>الكمية</th><th>التالف</th><th>المفقود</th><th>المتاح</th><th>آخر تحديث</th><th>الإجراءات</th></tr></thead>
+            <table className="inventory-data-table">
+              <thead><tr>
+                {isColumnVisible('item') && <th><button className="table-sort" onClick={()=>sortBy('item')}>الصنف <ArrowUpDown size={13}/></button></th>}
+                {isCentral && isColumnVisible('branch') && <th><button className="table-sort" onClick={()=>sortBy('branch')}>الفرع <ArrowUpDown size={13}/></button></th>}
+                {isColumnVisible('category') && <th><button className="table-sort" onClick={()=>sortBy('category')}>التصنيف <ArrowUpDown size={13}/></button></th>}
+                {isColumnVisible('quantity') && <th><button className="table-sort" onClick={()=>sortBy('quantity')}>الكمية <ArrowUpDown size={13}/></button></th>}
+                {isColumnVisible('damaged') && <th><button className="table-sort" onClick={()=>sortBy('damaged')}>التالف <ArrowUpDown size={13}/></button></th>}
+                {isColumnVisible('missing') && <th><button className="table-sort" onClick={()=>sortBy('missing')}>المفقود <ArrowUpDown size={13}/></button></th>}
+                {isColumnVisible('available') && <th><button className="table-sort" onClick={()=>sortBy('available')}>المتاح <ArrowUpDown size={13}/></button></th>}
+                {isColumnVisible('updated') && <th><button className="table-sort" onClick={()=>sortBy('updated_at')}>آخر تحديث <ArrowUpDown size={13}/></button></th>}
+                <th className="no-print">الإجراءات</th>
+              </tr></thead>
               <tbody>
-                {loading ? <tr><td colSpan={isCentral ? 9 : 8} className="empty-state">جاري تحميل البيانات...</td></tr> :
-                  filteredItems.length === 0 ? <tr><td colSpan={isCentral ? 9 : 8} className="empty-state"><Package size={28}/><strong>لا توجد أصناف لعرضها</strong><span>ابدأ بإضافة أول صنف إلى سجل المخزون.</span></td></tr> :
-                  filteredItems.map(item => <tr key={item.id}>
-                    <td><div className="item-cell">{item.image_url ? <img src={item.image_url} alt="" onError={e => {e.currentTarget.style.display='none'}}/> : <div className="item-placeholder"><Package size={18}/></div>}<div><strong>{item.item_name}</strong><small>{item.item_code || 'بدون كود'}</small></div></div></td>
-                    {isCentral && <td>{item.branches?.name || '—'}</td>}
-                    <td>{item.category || '—'}</td><td className="numeric">{item.quantity} {item.unit}</td>
-                    <td><span className="number-pill warning">{item.damaged_quantity}</span></td>
-                    <td><span className="number-pill danger">{item.missing_quantity}</span></td>
-                    <td><strong className="available">{Math.max(0, number(item.quantity)-number(item.damaged_quantity)-number(item.missing_quantity))}</strong></td>
-                    <td>{formatDate(item.updated_at)}</td>
-                    <td><div className="actions"><button className="small-action" onClick={() => openEdit(item)} disabled={!canManage} title="تعديل"><Activity size={16}/></button>{isCentral && <button className="small-action danger-action" onClick={() => deleteItem(item)} title="حذف"><Trash2 size={16}/></button>}</div></td>
+                {loading ? <tr><td colSpan={inventoryColumnDefs.filter(col=>isColumnVisible(col.key)).length+1} className="empty-state">جاري تحميل البيانات...</td></tr> :
+                  sortedFilteredItems.length === 0 ? <tr><td colSpan={inventoryColumnDefs.filter(col=>isColumnVisible(col.key)).length+1} className="empty-state"><Package size={28}/><strong>لا توجد أصناف لعرضها</strong><span>ابدأ بإضافة أول صنف إلى سجل المخزون.</span></td></tr> :
+                  sortedFilteredItems.map(item => <tr key={item.id}>
+                    {isColumnVisible('item') && <td><div className="item-cell">{item.image_url ? <img src={item.image_url} alt="" onError={e => {e.currentTarget.style.display='none'}}/> : <div className="item-placeholder"><Package size={18}/></div>}<div><strong>{item.item_name}</strong><small>{item.item_code || 'بدون كود'}</small></div></div></td>}
+                    {isCentral && isColumnVisible('branch') && <td>{item.branches?.name || '—'}</td>}
+                    {isColumnVisible('category') && <td>{item.category || '—'}</td>}
+                    {isColumnVisible('quantity') && <td className="numeric">{item.quantity} {item.unit}</td>}
+                    {isColumnVisible('damaged') && <td><span className="number-pill warning">{item.damaged_quantity}</span></td>}
+                    {isColumnVisible('missing') && <td><span className="number-pill danger">{item.missing_quantity}</span></td>}
+                    {isColumnVisible('available') && <td><strong className="available">{Math.max(0, number(item.quantity)-number(item.damaged_quantity)-number(item.missing_quantity))}</strong></td>}
+                    {isColumnVisible('updated') && <td>{formatDate(item.updated_at)}</td>}
+                    <td className="no-print"><div className="actions"><button className="small-action" onClick={() => openEdit(item)} disabled={!canManage} title="تعديل"><Activity size={16}/></button>{isCentral && <button className="small-action danger-action" onClick={() => deleteItem(item)} title="حذف"><Trash2 size={16}/></button>}</div></td>
                   </tr>)
                 }
               </tbody>
             </table>
           </div>
-          <div className="table-footer"><span>{inventoryFocus !== 'all' ? `عرض ${inventoryFocus === 'available' ? 'الأدوات المتاحة' : inventoryFocus === 'damaged' ? 'الأدوات التالفة' : 'الأدوات المفقودة'} — ` : ''}المعروض {filteredItems.length} من إجمالي {totalRows} سجلًا — البحث والتصنيف ضمن الصفحة الحالية</span><div className="pagination"><button className="button button-light" disabled={page === 0 || loading} onClick={() => { const next = page - 1; setPage(next); loadData(session, next, branchFilter) }}>السابق</button><span>صفحة {page + 1}</span><button className="button button-light" disabled={!hasMore || loading} onClick={() => { const next = page + 1; setPage(next); loadData(session, next, branchFilter) }}>التالي</button></div></div>
+          <div className="table-footer"><span>{inventoryFocus !== 'all' ? `عرض ${inventoryFocus === 'available' ? 'الأدوات المتاحة' : inventoryFocus === 'damaged' ? 'الأدوات التالفة' : 'الأدوات المفقودة'} — ` : ''}المعروض {filteredItems.length} من إجمالي {totalRows} سجلًا — البحث والتصنيف والترتيب ضمن الصفحة الحالية</span><div className="pagination"><button className="button button-light" disabled={page === 0 || loading} onClick={() => { const next = page - 1; setPage(next); loadData(session, next, branchFilter) }}>السابق</button><span>صفحة {page + 1}</span><button className="button button-light" disabled={!hasMore || loading} onClick={() => { const next = page + 1; setPage(next); loadData(session, next, branchFilter) }}>التالي</button></div></div>
         </section>
         </>}
         {activeSection === 'audits' && <PeriodicAudits profile={profile} branches={branches} isCentral={isCentral} onNotice={setNotice} onError={setError}/>}
