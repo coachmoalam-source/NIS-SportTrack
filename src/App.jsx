@@ -73,6 +73,7 @@ function App() {
   const [page, setPage] = useState(0)
   const [hasMore, setHasMore] = useState(false)
   const [totalRows, setTotalRows] = useState(0)
+  const [inventoryTotals, setInventoryTotals] = useState({ items: 0, quantity: 0, damaged: 0, missing: 0, available: 0 })
 
   const loadData = useCallback(async (activeSession = session, requestedPage = page, requestedBranch = branchFilter) => {
     if (!activeSession || !supabase) return
@@ -98,6 +99,7 @@ function App() {
       if (!profileResult.data.branch_id) {
         setItems([])
         setTotalRows(0)
+        setInventoryTotals({ items: 0, quantity: 0, damaged: 0, missing: 0, available: 0 })
         setHasMore(false)
         setError('حسابك غير مرتبط بفرع. اطلب من مسؤول النظام تحديد branch_id في جدول profiles.')
         setLoading(false)
@@ -107,6 +109,50 @@ function App() {
     } else if (requestedBranch !== 'all') {
       query = query.eq('branch_id', requestedBranch)
     }
+    // احسب الإجماليات من كل سجلات نطاق صلاحية المستخدم، وليس من صفحة العرض الحالية.
+    let totalsQuery = supabase.from('inventory')
+      .select('quantity, damaged_quantity, missing_quantity', { count: 'exact' })
+      .range(0, 999)
+    if (profileResult.data.role !== 'super_admin') {
+      totalsQuery = totalsQuery.eq('branch_id', profileResult.data.branch_id)
+    } else if (requestedBranch !== 'all') {
+      totalsQuery = totalsQuery.eq('branch_id', requestedBranch)
+    }
+    const totalsRows = []
+    let totalsCount = 0
+    let totalsError = null
+    let totalsPage = 0
+    while (true) {
+      const { data: batch, error: batchError, count: batchCount } = totalsPage === 0
+        ? await totalsQuery
+        : await supabase.from('inventory')
+            .select('quantity, damaged_quantity, missing_quantity', { count: 'exact' })
+            .range(totalsPage * 1000, (totalsPage + 1) * 1000 - 1)
+            .match(profileResult.data.role !== 'super_admin'
+              ? { branch_id: profileResult.data.branch_id }
+              : requestedBranch !== 'all' ? { branch_id: requestedBranch } : {})
+      if (batchError) { totalsError = batchError; break }
+      if (totalsPage === 0) totalsCount = batchCount || 0
+      totalsRows.push(...(batch || []))
+      if (!batch || batch.length < 1000 || totalsRows.length >= totalsCount) break
+      totalsPage += 1
+    }
+    if (totalsError) {
+      setError(totalsError.message)
+    } else {
+      setInventoryTotals(totalsRows.reduce((acc, row) => {
+        const quantity = number(row.quantity)
+        const damaged = number(row.damaged_quantity)
+        const missing = number(row.missing_quantity)
+        acc.items += 1
+        acc.quantity += quantity
+        acc.damaged += damaged
+        acc.missing += missing
+        acc.available += Math.max(0, quantity - damaged - missing)
+        return acc
+      }, { items: 0, quantity: 0, damaged: 0, missing: 0, available: 0 }))
+    }
+
     const { data, error: itemsError, count } = await query
     if (itemsError) {
       setError(itemsError.message)
@@ -166,15 +212,6 @@ function App() {
     const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter
     return matchesSearch && matchesBranch && matchesCategory
   }), [items, search, branchFilter, categoryFilter])
-
-  const totals = useMemo(() => filteredItems.reduce((acc, item) => {
-    acc.items += 1
-    acc.quantity += number(item.quantity)
-    acc.damaged += number(item.damaged_quantity)
-    acc.missing += number(item.missing_quantity)
-    acc.available += Math.max(0, number(item.quantity) - number(item.damaged_quantity) - number(item.missing_quantity))
-    return acc
-  }, { items: 0, quantity: 0, damaged: 0, missing: 0, available: 0 }), [filteredItems])
 
   const categories = [...new Set(items.map(item => item.category).filter(Boolean))]
 
@@ -369,11 +406,11 @@ function App() {
         {notice && <div className="alert alert-success"><CheckCircle2 size={18}/>{notice}<button onClick={() => setNotice('')}><X size={16}/></button></div>}
 
         <section className="stats-grid">
-          <Stat icon={<Package/>} label="عدد الأصناف (الصفحة)" value={totals.items}/>
-          <Stat icon={<Boxes/>} label="الكمية (الصفحة)" value={totals.quantity}/>
-          <Stat icon={<CheckCircle2/>} label="المتاح (الصفحة)" value={totals.available}/>
-          <Stat icon={<AlertTriangle/>} label="التالف (الصفحة)" value={totals.damaged} tone="warning"/>
-          <Stat icon={<Trash2/>} label="المفقود (الصفحة)" value={totals.missing} tone="danger"/>
+          <Stat icon={<Package/>} label="إجمالي الأصناف" value={inventoryTotals.items}/>
+          <Stat icon={<Boxes/>} label="إجمالي الكمية" value={inventoryTotals.quantity}/>
+          <Stat icon={<CheckCircle2/>} label="إجمالي المتاح" value={inventoryTotals.available}/>
+          <Stat icon={<AlertTriangle/>} label="إجمالي التالف" value={inventoryTotals.damaged} tone="warning"/>
+          <Stat icon={<Trash2/>} label="إجمالي المفقود" value={inventoryTotals.missing} tone="danger"/>
         </section>
 
         <section className="panel">
