@@ -10,6 +10,7 @@ import DamageMaintenance from './components/DamageMaintenance'
 import BranchComparison from './components/BranchComparison'
 import Settings from './components/Settings'
 import InventoryReports from './components/InventoryReports'
+import ExcelImport from './components/ExcelImport'
 
 const BRANCHES = ['El Shorouk', 'O West', 'New Capital', 'El Tagamoa', 'Porto Said']
 const emptyForm = { item_code: '', item_name: '', category: '', quantity: 0, damaged_quantity: 0, missing_quantity: 0, unit: 'قطعة', image_url: '', notes: '' }
@@ -513,6 +514,7 @@ function App() {
         <div className="brand"><div className="brand-mark"><Boxes size={25}/></div><div><strong>NIS SportTrack</strong><small>PE Inventory Management</small></div></div>
         <div className="side-label">{t('القائمة الرئيسية','MAIN MENU')}</div>
         <button className={activeSection === 'inventory' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('inventory')}><ClipboardList size={18}/> {t('إدارة المخزون','Inventory')}</button>
+        {canManage && <button className={activeSection === 'excel-import' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('excel-import')}><ArrowDownToLine size={18}/> استيراد Excel</button>}
         <button className={activeSection === 'audits' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('audits')}><Activity size={18}/> {t('الجرد الدوري','Periodic Audits')}</button>
         <button className={activeSection === 'services' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('services')}><Wrench size={18}/> {t('الصيانة والتالف','Maintenance & Damage')}</button>
         {canViewAllBranches && <>
@@ -531,7 +533,7 @@ function App() {
         </header>
 
         <section className="welcome-row">
-          <div><h2>{activeSection === 'inventory' ? t('لوحة متابعة المخزون','Inventory Dashboard') : activeSection === 'audits' ? t('إدارة الجرد الدوري','Periodic Audit Management') : activeSection === 'services' ? t('إدارة الصيانة والتالف والمفقود','Damage, Loss & Maintenance') : activeSection === 'comparison' ? t('مقارنة مخزون الفروع','Branch Inventory Comparison') : t('تقارير المخزون للفروع','Branch Inventory Reports')}</h2><p>{activeSection === 'inventory' ? t('متابعة الكميات والمتاح والتالف والمفقود في فروع NIS.','Track quantities, available, damaged and missing items across NIS branches.') : activeSection === 'audits' ? 'تنظيم جلسات الجرد وتوثيق النتائج ومراجعتها مركزيًا.' : activeSection === 'services' ? 'تسجيل بلاغات التلف والفقد وطلبات الصيانة ومتابعتها.' : activeSection === 'comparison' ? 'مراجعة توزيع الأصناف والكميات والمتاح والتالف والمفقود بين الفروع.' : 'استخراج تقارير تفصيلية وملخصات قابلة للتصدير لكل فرع.'}</p></div>
+          <div><h2>{activeSection === 'inventory' ? t('لوحة متابعة المخزون','Inventory Dashboard') : activeSection === 'audits' ? t('إدارة الجرد الدوري','Periodic Audit Management') : activeSection === 'services' ? t('إدارة الصيانة والتالف والمفقود','Damage, Loss & Maintenance') : activeSection === 'excel-import' ? 'استيراد بيانات المخزون من Excel' : activeSection === 'comparison' ? t('مقارنة مخزون الفروع','Branch Inventory Comparison') : t('تقارير المخزون للفروع','Branch Inventory Reports')}</h2><p>{activeSection === 'inventory' ? t('متابعة الكميات والمتاح والتالف والمفقود في فروع NIS.','Track quantities, available, damaged and missing items across NIS branches.') : activeSection === 'audits' ? 'تنظيم جلسات الجرد وتوثيق النتائج ومراجعتها مركزيًا.' : activeSection === 'services' ? 'تسجيل بلاغات التلف والفقد وطلبات الصيانة ومتابعتها.' : activeSection === 'comparison' ? 'مراجعة توزيع الأصناف والكميات والمتاح والتالف والمفقود بين الفروع.' : 'استخراج تقارير تفصيلية وملخصات قابلة للتصدير لكل فرع.'}</p></div>
           {activeSection === 'inventory' && <button className="button button-primary" onClick={openNew} disabled={!canManage}><Plus size={18}/> {t('إضافة صنف جديد','Add New Item')}</button>}
         </section>
 
@@ -606,6 +608,7 @@ function App() {
           <div className="table-footer"><span>{inventoryFocus !== 'all' ? `عرض ${inventoryFocus === 'available' ? 'الأدوات المتاحة' : inventoryFocus === 'damaged' ? 'الأدوات التالفة' : 'الأدوات المفقودة'} — ` : ''}المعروض {filteredItems.length} من إجمالي {totalRows} سجلًا — البحث الشامل في جميع السجلات، والتصنيف والترتيب ضمن الصفحة المعروضة</span><div className="pagination"><button className="button button-light" disabled={page === 0 || loading} onClick={() => { const next = page - 1; setPage(next); loadData(session, next, branchFilter, search) }}>السابق</button><span>صفحة {page + 1}</span><button className="button button-light" disabled={!hasMore || loading} onClick={() => { const next = page + 1; setPage(next); loadData(session, next, branchFilter, search) }}>التالي</button></div></div>
         </section>
         </>}
+        {activeSection === 'excel-import' && <ExcelImport profile={profile} branches={branches} isCentral={isCentral} canManage={canManage} onComplete={() => loadData(session, 0, branchFilter)} onError={setError} onNotice={setNotice}/>}
         {activeSection === 'audits' && <PeriodicAudits profile={profile} branches={branches} isCentral={isCentral} canReview={canViewAllBranches} onNotice={setNotice} onError={setError}/>}
         {activeSection === 'services' && <DamageMaintenance profile={profile} branches={branches} isCentral={isCentral} onNotice={setNotice} onError={setError}/>}
         {activeSection === 'comparison' && canViewAllBranches && <BranchComparison branches={branches} onError={setError}/ >}
