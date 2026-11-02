@@ -272,7 +272,6 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
           if (createError) throw createError
           equipment = createdEquipment
           equipmentRows.push(equipment)
-          created += 1
         }
 
         const { data: oldStock, error: stockReadError } = await supabase
