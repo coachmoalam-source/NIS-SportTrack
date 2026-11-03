@@ -113,7 +113,7 @@ async function parsePdf(file) {
     }
   }
   if (!lines.length) throw new Error('لم أتمكن من استخراج نص من ملف PDF. قد يكون الملف ممسوحًا ضوئيًا كصورة ويحتاج OCR.')
-  const split = text => text.split(/\\s{2,}|\\t|\\s*\\|\\s*/).map(v => v.trim()).filter(Boolean)
+  const split = text => text.split(/\s{2,}|\t|\s*\|\s*/).map(v => v.trim()).filter(Boolean)
   let headerIndex = -1
   let headers = []
   for (let i = 0; i < Math.min(lines.length, 80); i += 1) {
