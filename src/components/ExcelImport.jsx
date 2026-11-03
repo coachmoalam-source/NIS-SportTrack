@@ -287,9 +287,27 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
           missing_quantity: row.missing_quantity,
           notes: row.notes || null
         }
-        const { error: stockError } = await supabase
-          .from('inventory')
-          .upsert(stockPayload, { onConflict: 'branch_id,equipment_id' })
+        // The live schema does not define a unique constraint on (branch_id, equipment_id),
+        // so avoid upsert(onConflict) and update by the existing inventory row ID instead.
+        let stockError
+        if (oldStock?.id) {
+          const result = await supabase
+            .from('inventory')
+            .update({
+              quantity: stockPayload.quantity,
+              damaged_quantity: stockPayload.damaged_quantity,
+              missing_quantity: stockPayload.missing_quantity,
+              notes: stockPayload.notes,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', oldStock.id)
+          stockError = result.error
+        } else {
+          const result = await supabase
+            .from('inventory')
+            .insert(stockPayload)
+          stockError = result.error
+        }
         if (stockError) throw stockError
 
         const changed = !oldStock ||
