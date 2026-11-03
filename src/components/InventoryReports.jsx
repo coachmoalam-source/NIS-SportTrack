@@ -92,12 +92,36 @@ export default function InventoryReports({ branches, onError }) {
     URL.revokeObjectURL(url)
   }
 
+
+  const exportPdf = () => {
+    const panel = document.querySelector('.reports-panel')
+    if (!panel) return
+    const printWindow = window.open('', '_blank', 'width=1100,height=800')
+    if (!printWindow) {
+      onError('يرجى السماح بفتح النوافذ المنبثقة لطباعة التقرير بصيغة PDF.')
+      return
+    }
+    const title = branchId === 'all' ? 'تقرير مخزون جميع الفروع' : 'تقرير مخزون الفرع'
+    printWindow.document.open()
+    printWindow.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>${title}</title><style>
+      body{font-family:Arial,Tahoma,sans-serif;color:#172033;padding:24px}h1{font-size:22px;margin:0 0 8px}p{color:#555}
+      .reports-actions,.reports-filters{display:none!important}.reports-summary-grid,.reports-branch-grid{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}
+      .reports-summary-card,.reports-branch-card{border:1px solid #ccd2dc;padding:10px;min-width:110px;border-radius:6px}
+      .reports-summary-card span,.reports-branch-card small{display:block}.reports-summary-card strong{font-size:18px}
+      table{width:100%;border-collapse:collapse;font-size:11px;margin-top:12px}th,td{border:1px solid #bbb;padding:7px;text-align:right}th{background:#edf0f5}
+      .table-wrap{overflow:visible}.reports-subtitle{margin-top:18px}@page{size:A4 landscape;margin:12mm}
+      tr{break-inside:avoid}thead{display:table-header-group}
+    </style></head><body><h1>${title} – NIS SportTrack</h1><p>تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')} | عدد السجلات: ${visibleRows.length}</p>${panel.innerHTML}</body></html>`)
+    printWindow.document.close()
+    printWindow.onload = () => { printWindow.focus(); printWindow.print() }
+  }
+
   return <section className="panel reports-panel">
     <div className="panel-heading">
-      <div><h3><FileSpreadsheet size={19}/> تقارير المخزون</h3><p>تقرير تفصيلي وملخص كميات لكل فرع، قابل للتصدير إلى Excel</p></div>
+      <div><h3><FileSpreadsheet size={19}/> تقارير المخزون</h3><p>تقرير تفصيلي وملخص كميات لكل فرع، قابل للتصدير إلى Excel وPDF</p></div>
       <div className="reports-actions">
         <button className="button button-light" onClick={load} disabled={loading}><RefreshCw size={16}/> تحديث</button>
-        <button className="button button-primary" onClick={exportReport} disabled={loading || !visibleRows.length}><Download size={16}/> تصدير التقرير</button>
+        <button className="button button-light" onClick={exportReport} disabled={loading || !visibleRows.length}><Download size={16}/> Excel / CSV</button><button className="button button-primary" onClick={exportPdf} disabled={loading || !visibleRows.length}><Download size={16}/> PDF / طباعة</button>
       </div>
     </div>
     <div className="filters reports-filters">
