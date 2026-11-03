@@ -193,8 +193,10 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
     if (!file) return
     reset()
     setFileName(file.name)
-    if (!/\.xlsx$/i.test(file.name)) {
-      setFileError('حالياً يدعم الاستيراد ملفات Excel بصيغة .xlsx فقط. احفظ ملفك بهذه الصيغة ثم أعد المحاولة.')
+    const isExcel = /\.xlsx$/i.test(file.name)
+    const isPdf = /\.pdf$/i.test(file.name)
+    if (!isExcel && !isPdf) {
+      setFileError('صيغة الملف غير مدعومة. اختر ملف Excel بصيغة XLSX أو ملف PDF.')
       return
     }
     if (file.size > 15 * 1024 * 1024) {
@@ -203,7 +205,7 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
     }
     setParsing(true)
     try {
-      const parsed = /\\.pdf$/i.test(file.name) ? await parsePdf(file) : await parseWorkbook(file)
+      const parsed = isPdf ? await parsePdf(file) : await parseWorkbook(file)
       setRows(validateRows(parsed))
     } catch (error) {
       setFileError(error.message || 'تعذر قراءة الملف.')
@@ -438,7 +440,7 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
           <input type="file" accept=".xlsx,.pdf,application/pdf" onChange={handleFile} disabled={!canManage || parsing || importing} />
           <Upload size={24} />
           <strong>{parsing ? 'جارٍ قراءة الملف...' : fileName || 'اضغط لاختيار ملف Excel أو PDF'}</strong>
-          <span>XLSX أو PDF نصي • حتى 15 ميجابايت • حتى 5,000 صف</span>
+          <span>Excel XLSX أو PDF يحتوي على نص قابل للتحديد • حتى 15 ميجابايت • حتى 5,000 صف</span>
         </label>
 
         {fileError && <div className="excel-message error"><AlertCircle size={17} />{fileError}</div>}
@@ -454,7 +456,7 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
             <div className="excel-preview-heading"><div><h4>معاينة البيانات</h4><p>يتم استيراد الصفوف السليمة فقط.</p></div><button className="button button-light" type="button" onClick={reset}>إلغاء الملف</button></div>
             <div className="excel-table-wrap">
               <table>
-                <thead><tr><th>صف Excel</th><th>اسم الصنف</th><th>الكود</th><th>التصنيف</th><th>الكمية</th><th>التالف</th><th>المفقود</th><th>النتيجة</th></tr></thead>
+                <thead><tr><th>صف المصدر</th><th>اسم الصنف</th><th>الكود</th><th>التصنيف</th><th>الكمية</th><th>التالف</th><th>المفقود</th><th>النتيجة</th></tr></thead>
                 <tbody>
                   {rows.slice(0, 150).map(row => (
                     <tr key={row.sourceRow} className={row.errors.length ? 'invalid' : ''}>
