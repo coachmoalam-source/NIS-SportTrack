@@ -494,3 +494,12 @@
  .app-shell .stat-card{min-height:88px;padding:12px}
  .app-shell .stat-card strong{font-size:20px}
 }
+
+
+/* Mobile shortcut for Excel inventory import */
+.mobile-import-button{display:none}
+@media(max-width:760px){
+  .app-shell .user-area{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+  .app-shell .mobile-import-button{display:inline-flex;min-height:38px;padding:8px 10px;font-size:10px;white-space:nowrap;gap:6px}
+  .app-shell .mobile-import-button svg{width:15px;height:15px}
+}
