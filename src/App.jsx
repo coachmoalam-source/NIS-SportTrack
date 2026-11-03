@@ -514,7 +514,8 @@ function App() {
         <div className="brand"><div className="brand-mark"><Boxes size={25}/></div><div><strong>NIS SportTrack</strong><small>PE Inventory Management</small></div></div>
         <div className="side-label">{t('القائمة الرئيسية','MAIN MENU')}</div>
         <button className={activeSection === 'inventory' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('inventory')}><ClipboardList size={18}/> {t('إدارة المخزون','Inventory')}</button>
-        {canManage && <button className={activeSection === 'excel-import' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('excel-import')}><ArrowDownToLine size={18}/> استيراد Excel / PDF</button>}
+        {canManage && <button className={activeSection === 'excel-import' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('excel-import')}><ArrowDownToLine size={18}/> استيراد المخزون</button>}
+        <button className="nav-item" onClick={exportInventoryCsv}><Download size={18}/> تصدير المخزون (CSV)</button>
         <button className={activeSection === 'audits' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('audits')}><Activity size={18}/> {t('الجرد الدوري','Periodic Audits')}</button>
         <button className={activeSection === 'services' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('services')}><Wrench size={18}/> {t('الصيانة والتالف','Maintenance & Damage')}</button>
         {canViewAllBranches && <>
@@ -529,7 +530,7 @@ function App() {
       <main className="main-content">
         <header className="topbar">
           <div><div className="eyebrow">NIS • PHYSICAL EDUCATION</div><h1>{t('إدارة أدوات التربية الرياضية','PE Equipment Management')}</h1></div>
-          <div className="user-area"><div className="avatar"><CircleUserRound size={21}/></div><div className="user-copy"><strong>{profile?.full_name || session.user.email}</strong><small>{isCentral ? t('مسؤول مركزي','Central Administrator') : isExecutive ? t('إدارة تنفيذية','Executive Administrator') : t('مسؤول فرع','Branch Administrator')}</small></div>{canManage && <button className="button button-primary mobile-import-button" onClick={() => setActiveSection('excel-import')}><ArrowDownToLine size={16}/> استيراد Excel</button>}<button className="icon-button" onClick={signOut} title="تسجيل الخروج"><LogOut size={18}/></button></div>
+          <div className="user-area"><div className="avatar"><CircleUserRound size={21}/></div><div className="user-copy"><strong>{profile?.full_name || session.user.email}</strong><small>{isCentral ? t('مسؤول مركزي','Central Administrator') : isExecutive ? t('إدارة تنفيذية','Executive Administrator') : t('مسؤول فرع','Branch Administrator')}</small></div>{canManage && <button className="button button-primary mobile-import-button" onClick={() => setActiveSection('excel-import')}><ArrowDownToLine size={16}/> استيراد</button>}<button className="icon-button" onClick={signOut} title="تسجيل الخروج"><LogOut size={18}/></button></div>
         </header>
 
         <section className="welcome-row">
@@ -569,7 +570,7 @@ function App() {
           <div className="inventory-table-tools">
             <div className="inventory-tool-group">
               <details className="column-picker"><summary><SlidersHorizontal size={16}/> الأعمدة الظاهرة</summary><div className="column-picker-menu">{inventoryColumnDefs.map(col=><label key={col.key}><input type="checkbox" checked={isColumnVisible(col.key)} disabled={col.key==='item'} onChange={()=>toggleColumn(col.key)}/>{col.label}</label>)}</div></details>
-              <button className="button button-light" onClick={exportInventoryCsv}><Download size={16}/> تصدير Excel</button>
+              <button className="button button-light" onClick={exportInventoryCsv}><Download size={16}/> تصدير CSV</button>
               <button className="button button-light" onClick={()=>window.print()}><Printer size={16}/> طباعة</button>
             </div>
             <span className="table-result-count">يعرض {sortedFilteredItems.length} سجلًا من الصفحة الحالية</span>
