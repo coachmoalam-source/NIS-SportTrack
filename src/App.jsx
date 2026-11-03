@@ -529,7 +529,7 @@ function App() {
       <main className="main-content">
         <header className="topbar">
           <div><div className="eyebrow">NIS • PHYSICAL EDUCATION</div><h1>{t('إدارة أدوات التربية الرياضية','PE Equipment Management')}</h1></div>
-          <div className="user-area"><div className="avatar"><CircleUserRound size={21}/></div><div className="user-copy"><strong>{profile?.full_name || session.user.email}</strong><small>{isCentral ? t('مسؤول مركزي','Central Administrator') : isExecutive ? t('إدارة تنفيذية','Executive Administrator') : t('مسؤول فرع','Branch Administrator')}</small></div><button className="icon-button" onClick={signOut} title="تسجيل الخروج"><LogOut size={18}/></button></div>
+          <div className="user-area"><div className="avatar"><CircleUserRound size={21}/></div><div className="user-copy"><strong>{profile?.full_name || session.user.email}</strong><small>{isCentral ? t('مسؤول مركزي','Central Administrator') : isExecutive ? t('إدارة تنفيذية','Executive Administrator') : t('مسؤول فرع','Branch Administrator')}</small></div>{canManage && <button className="button button-primary mobile-import-button" onClick={() => setActiveSection('excel-import')}><ArrowDownToLine size={16}/> استيراد Excel</button>}<button className="icon-button" onClick={signOut} title="تسجيل الخروج"><LogOut size={18}/></button></div>
         </header>
 
         <section className="welcome-row">
