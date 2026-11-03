@@ -90,6 +90,10 @@ function App() {
   const isExecutive = profile?.role === 'executive_admin'
   const canViewAllBranches = isCentral || isExecutive
   const canManage = isCentral || profile?.role === 'branch_manager'
+  // Central Excel import is restricted to this explicitly approved account.
+  const isAllBranchExcelUser = session?.user?.email?.toLowerCase() === 'mohamed.alameldin@nis-egypt.com'
+  const canImportExcel = canManage || isAllBranchExcelUser
+  const canImportAllBranches = isCentral || isAllBranchExcelUser
   const ownBranchId = profile?.branch_id
 
   const PAGE_SIZE = 50
@@ -608,7 +612,7 @@ function App() {
           <div className="table-footer"><span>{inventoryFocus !== 'all' ? `عرض ${inventoryFocus === 'available' ? 'الأدوات المتاحة' : inventoryFocus === 'damaged' ? 'الأدوات التالفة' : 'الأدوات المفقودة'} — ` : ''}المعروض {filteredItems.length} من إجمالي {totalRows} سجلًا — البحث الشامل في جميع السجلات، والتصنيف والترتيب ضمن الصفحة المعروضة</span><div className="pagination"><button className="button button-light" disabled={page === 0 || loading} onClick={() => { const next = page - 1; setPage(next); loadData(session, next, branchFilter, search) }}>السابق</button><span>صفحة {page + 1}</span><button className="button button-light" disabled={!hasMore || loading} onClick={() => { const next = page + 1; setPage(next); loadData(session, next, branchFilter, search) }}>التالي</button></div></div>
         </section>
         </>}
-        {activeSection === 'excel-import' && <ExcelImport profile={profile} branches={branches} isCentral={isCentral} canManage={canManage} onComplete={() => loadData(session, 0, branchFilter)} onError={setError} onNotice={setNotice}/>}
+        {activeSection === 'excel-import' && <ExcelImport profile={profile} branches={branches} isCentral={canImportAllBranches} canManage={canImportExcel} onComplete={() => loadData(session, 0, branchFilter)} onError={setError} onNotice={setNotice}/>}
         {activeSection === 'audits' && <PeriodicAudits profile={profile} branches={branches} isCentral={isCentral} canReview={canViewAllBranches} onNotice={setNotice} onError={setError}/>}
         {activeSection === 'services' && <DamageMaintenance profile={profile} branches={branches} isCentral={isCentral} onNotice={setNotice} onError={setError}/>}
         {activeSection === 'comparison' && canViewAllBranches && <BranchComparison branches={branches} onError={setError}/ >}
