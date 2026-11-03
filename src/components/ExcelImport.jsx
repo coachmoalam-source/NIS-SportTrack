@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react'
 import ExcelJS from 'exceljs'
+import * as pdfjsLib from 'pdfjs-dist'
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker
 import { AlertCircle, CheckCircle2, Download, FileSpreadsheet, RefreshCw, Upload } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import './ExcelImport.css'
@@ -89,6 +92,63 @@ async function parseWorkbook(file) {
   return rows
 }
 
+
+async function parsePdf(file) {
+  const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise
+  const lines = []
+  for (let pageNo = 1; pageNo <= pdf.numPages; pageNo += 1) {
+    const page = await pdf.getPage(pageNo)
+    const content = await page.getTextContent()
+    const grouped = new Map()
+    for (const item of content.items) {
+      if (!item.str || !item.str.trim()) continue
+      const y = Math.round(item.transform[5] / 3) * 3
+      if (!grouped.has(y)) grouped.set(y, [])
+      grouped.get(y).push({ x: item.transform[4], text: item.str.trim() })
+    }
+    for (const [y, parts] of [...grouped.entries()].sort((a,b) => b[0]-a[0])) {
+      const ordered = parts.sort((a,b) => a.x-b.x)
+      const text = ordered.map(part => part.text).join('  ').trim()
+      if (text) lines.push({ page: pageNo, text })
+    }
+  }
+  if (!lines.length) throw new Error('لم أتمكن من استخراج نص من ملف PDF. قد يكون الملف ممسوحًا ضوئيًا كصورة ويحتاج OCR.')
+  const split = text => text.split(/\\s{2,}|\\t|\\s*\\|\\s*/).map(v => v.trim()).filter(Boolean)
+  let headerIndex = -1
+  let headers = []
+  for (let i = 0; i < Math.min(lines.length, 80); i += 1) {
+    const mapped = split(lines[i].text).map(value => HEADER_LOOKUP[normalizeHeader(value)])
+    if (mapped.includes('item_name') && mapped.includes('quantity')) {
+      headerIndex = i
+      headers = mapped
+      break
+    }
+  }
+  if (headerIndex < 0) throw new Error('لم أجد صف عناوين واضحًا داخل PDF. تأكد أن الجدول يحتوي على «اسم الصنف» و«الكمية»، وأن الأعمدة مفصولة بوضوح.')
+  const rows = []
+  for (let i = headerIndex + 1; i < lines.length; i += 1) {
+    const cells = split(lines[i].text)
+    if (cells.length < 2) continue
+    const values = {}
+    headers.forEach((field, index) => { if (field) values[field] = cells[index] || '' })
+    if (!values.item_name || values.quantity === undefined) continue
+    rows.push({
+      sourceRow: 'PDF-' + lines[i].page + '-' + (i - headerIndex),
+      item_name: String(values.item_name || '').trim(),
+      item_code: String(values.item_code || '').trim(),
+      category: String(values.category || '').trim(),
+      quantity: asInteger(values.quantity),
+      damaged_quantity: values.damaged_quantity ? asInteger(values.damaged_quantity) : 0,
+      missing_quantity: values.missing_quantity ? asInteger(values.missing_quantity) : 0,
+      unit: String(values.unit || 'قطعة').trim() || 'قطعة',
+      notes: String(values.notes || '').trim()
+    })
+  }
+  if (!rows.length) throw new Error('تم العثور على العناوين لكن لم أجد صفوف بيانات قابلة للقراءة. جرّب ملف Excel أو PDF نصيًا بتنسيق جدول واضح.')
+  if (rows.length > 5000) throw new Error('الحد الأقصى للاستيراد في المرة الواحدة هو 5,000 صف.')
+  return rows
+}
+
 function validateRows(rows) {
   const seenCodes = new Set()
   const seenNames = new Set()
@@ -143,10 +203,10 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
     }
     setParsing(true)
     try {
-      const parsed = await parseWorkbook(file)
+      const parsed = /\\.pdf$/i.test(file.name) ? await parsePdf(file) : await parseWorkbook(file)
       setRows(validateRows(parsed))
     } catch (error) {
-      setFileError(error.message || 'تعذر قراءة ملف Excel.')
+      setFileError(error.message || 'تعذر قراءة الملف.')
     } finally {
       setParsing(false)
       event.target.value = ''
@@ -326,7 +386,7 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
               equipment_id: equipment.id,
               movement_type: oldStock ? 'adjustment' : 'addition',
               quantity: movementQuantity,
-              notes: 'استيراد Excel - رصيد جديد: ' + row.quantity + '، تالف: ' + row.damaged_quantity + '، مفقود: ' + row.missing_quantity,
+              notes: 'استيراد ملف - رصيد جديد: ' + row.quantity + '، تالف: ' + row.damaged_quantity + '، مفقود: ' + row.missing_quantity,
               created_by: profile.id
             })
             if (movementError) movementWarnings += 1
@@ -342,7 +402,7 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
     setImporting(false)
     setSummary({ total: validRows.length, created, updated, unchanged, failures, movementWarnings })
     if (failures.length === 0) {
-      onNotice('اكتمل استيراد ملف Excel بنجاح.')
+      onNotice('اكتمل استيراد الملف بنجاح.')
       if (onComplete) await onComplete()
     } else {
       onError(failures.length + ' صف لم يتم استيراده. راجع تفاصيل الأخطاء أسفل المعاينة.')
@@ -355,7 +415,7 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
       <div className="excel-import-intro">
         <div className="excel-import-icon"><FileSpreadsheet size={25} /></div>
         <div>
-          <h3>استيراد المخزون من Excel</h3>
+          <h3>استيراد المخزون من Excel أو PDF</h3>
           <p>ارفع ملف الفرع، راجع البيانات والأخطاء، ثم اعتمد تحديث الأرصدة.</p>
         </div>
         <button className="button button-light" type="button" onClick={downloadTemplate}><Download size={16} /> تحميل نموذج Excel</button>
@@ -375,10 +435,10 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
         )}
 
         <label className="excel-upload-zone">
-          <input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleFile} disabled={!canManage || parsing || importing} />
+          <input type="file" accept=".xlsx,.pdf,application/pdf" onChange={handleFile} disabled={!canManage || parsing || importing} />
           <Upload size={24} />
-          <strong>{parsing ? 'جارٍ قراءة الملف...' : fileName || 'اضغط لاختيار ملف Excel'}</strong>
-          <span>صيغة XLSX • حتى 15 ميجابايت • حتى 5,000 صف</span>
+          <strong>{parsing ? 'جارٍ قراءة الملف...' : fileName || 'اضغط لاختيار ملف Excel أو PDF'}</strong>
+          <span>XLSX أو PDF نصي • حتى 15 ميجابايت • حتى 5,000 صف</span>
         </label>
 
         {fileError && <div className="excel-message error"><AlertCircle size={17} />{fileError}</div>}
