@@ -8,15 +8,16 @@ import { AlertCircle, CheckCircle2, Download, FileSpreadsheet, RefreshCw, Upload
 import { supabase } from '../lib/supabase'
 import './ExcelImport.css'
 
+// Central synonym dictionary: every source term maps to one canonical inventory field.
 const FIELD_ALIASES = {
-  item_name: ['اسم الصنف', 'اسم الاداه', 'اسم الأداة', 'الصنف', 'الأداة', 'class', 'class name', 'item name', 'item', 'name', 'equipment', 'equipment name'],
-  item_code: ['كود الصنف', 'كود', 'الكود', 'item code', 'code', 'sku'],
-  category: ['التصنيف', 'الفئة', 'نوع اللعبة', 'category', 'type'],
-  quantity: ['الكمية', 'عدد', 'العدد', 'الرصيد', 'الاجمالي', 'إجمالي الكمية', 'number', 'quantity', 'qty', 'count', 'stock', 'total'],
-  damaged_quantity: ['التالف', 'كمية التالف', 'damaged', 'damaged quantity'],
-  missing_quantity: ['المفقود', 'كمية المفقود', 'missing', 'missing quantity'],
-  unit: ['الوحدة', 'وحدة القياس', 'unit', 'uom'],
-  notes: ['ملاحظات', 'الوصف', 'comment', 'comments', 'used', 'notes', 'description']
+  item_name: ['اسم الصنف', 'الصنف', 'صنف', 'اسم الاداه', 'اسم الأداة', 'الأداة', 'اسم المعدة', 'اسم المعده', 'المعدة', 'المعده', 'اسم اللعبة', 'اسم اللعبه', 'البيان', 'بيان الصنف', 'الاداة الرياضية', 'الأداة الرياضية', 'class', 'class name', 'item name', 'item', 'name', 'equipment', 'equipment name', 'description of item'],
+  item_code: ['كود الصنف', 'كود', 'الكود', 'رقم الصنف', 'رقم الكود', 'item code', 'code', 'sku', 'item number'],
+  category: ['التصنيف', 'الفئة', 'نوع اللعبة', 'نوع النشاط', 'القسم', 'category', 'type', 'sport', 'activity'],
+  quantity: ['الكمية', 'كمية', 'عدد', 'العدد', 'الرصيد', 'الرصيد الحالي', 'الاجمالي', 'إجمالي الكمية', 'اجمالي العدد', 'العدد الكلي', 'الموجود', 'المتوفر', 'عدد القطع', 'عدد الادوات', 'number', 'quantity', 'qty', 'count', 'stock', 'total', 'available', 'in stock'],
+  damaged_quantity: ['التالف', 'تالف', 'كمية التالف', 'عدد التالف', 'المستهلك', 'المكسور', 'damaged', 'damaged quantity', 'broken', 'broken quantity'],
+  missing_quantity: ['المفقود', 'مفقود', 'كمية المفقود', 'عدد المفقود', 'العجز', 'النقص', 'كمية العجز', 'missing', 'missing quantity', 'shortage', 'shortage quantity'],
+  unit: ['الوحدة', 'وحدة القياس', 'وحدة', 'unit', 'uom', 'measurement unit'],
+  notes: ['ملاحظات', 'ملاحظة', 'الوصف', 'الحالة', 'حالة الصنف', 'التعليق', 'تعليقات', 'مستخدم', 'المستخدم', 'used', 'use', 'comment', 'comments', 'notes', 'description', 'condition', 'status']
 }
 
 const normalizeHeader = value => String(value || '')
@@ -33,6 +34,16 @@ const HEADER_LOOKUP = Object.entries(FIELD_ALIASES).reduce((all, entry) => {
   entry[1].forEach(alias => { all[normalizeHeader(alias)] = entry[0] })
   return all
 }, {})
+
+const resolveHeader = value => {
+  const normalized = normalizeHeader(value)
+  if (HEADER_LOOKUP[normalized]) return HEADER_LOOKUP[normalized]
+  // Also recognize a known heading embedded in a longer PDF text fragment.
+  const matches = Object.entries(HEADER_LOOKUP)
+    .filter(([alias]) => alias.length >= 3 && normalized.includes(alias))
+    .sort((a, b) => b[0].length - a[0].length)
+  return matches[0]?.[1] || null
+}
 
 const cellText = cell => {
   const value = cell?.value
@@ -115,7 +126,7 @@ async function parseWordDocument(file) {
     let headerIndex = -1
     let headers = []
     for (let index = 0; index < Math.min(matrix.length, 10); index += 1) {
-      const mapped = matrix[index].map(value => HEADER_LOOKUP[normalizeHeader(value)])
+      const mapped = matrix[index].map(value => resolveHeader(value))
       if (mapped.includes('item_name') && mapped.includes('quantity')) {
         headerIndex = index
         headers = mapped
@@ -238,17 +249,17 @@ async function parsePdf(file) {
   let headerAnchors = []
 
   for (let i = 0; i < Math.min(lines.length, 100); i += 1) {
-    const mapped = lines[i].parts.map(part => HEADER_LOOKUP[normalizeHeader(part.text)])
+    const mapped = lines[i].parts.map(part => resolveHeader(part.text))
     if (mapped.includes('item_name') && mapped.includes('quantity')) {
       headerIndex = i
       headerAnchors = lines[i].parts.map(part => ({
         xRatio: part.x / lines[i].pageWidth,
-        field: HEADER_LOOKUP[normalizeHeader(part.text)] || null
+        field: resolveHeader(part.text) || null
       }))
       break
     }
 
-    const fallbackMapped = split(lines[i].text).map(value => HEADER_LOOKUP[normalizeHeader(value)])
+    const fallbackMapped = split(lines[i].text).map(value => resolveHeader(value))
     if (fallbackMapped.includes('item_name') && fallbackMapped.includes('quantity')) {
       headerIndex = i
       headerAnchors = []
