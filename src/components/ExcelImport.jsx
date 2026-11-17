@@ -9,14 +9,14 @@ import { supabase } from '../lib/supabase'
 import './ExcelImport.css'
 
 const FIELD_ALIASES = {
-  item_name: ['اسم الصنف', 'اسم الاداه', 'اسم الأداة', 'الصنف', 'الأداة', 'item name', 'item', 'name', 'equipment', 'equipment name'],
+  item_name: ['اسم الصنف', 'اسم الاداه', 'اسم الأداة', 'الصنف', 'الأداة', 'class', 'class name', 'item name', 'item', 'name', 'equipment', 'equipment name'],
   item_code: ['كود الصنف', 'كود', 'الكود', 'item code', 'code', 'sku'],
   category: ['التصنيف', 'الفئة', 'نوع اللعبة', 'category', 'type'],
-  quantity: ['الكمية', 'الرصيد', 'الاجمالي', 'إجمالي الكمية', 'quantity', 'qty', 'stock', 'total'],
+  quantity: ['الكمية', 'عدد', 'العدد', 'الرصيد', 'الاجمالي', 'إجمالي الكمية', 'number', 'quantity', 'qty', 'count', 'stock', 'total'],
   damaged_quantity: ['التالف', 'كمية التالف', 'damaged', 'damaged quantity'],
   missing_quantity: ['المفقود', 'كمية المفقود', 'missing', 'missing quantity'],
   unit: ['الوحدة', 'وحدة القياس', 'unit', 'uom'],
-  notes: ['ملاحظات', 'الوصف', 'notes', 'description']
+  notes: ['ملاحظات', 'الوصف', 'comment', 'comments', 'notes', 'description']
 }
 
 const normalizeHeader = value => String(value || '')
@@ -149,58 +149,195 @@ async function parseWordDocument(file) {
   return rows
 }
 
+const normalizeDigits = value => String(value || '').replace(/[٠-٩]/g, digit => '٠١٢٣٤٥٦٧٨٩'.indexOf(digit)).replace(/[۰-۹]/g, digit => '۰۱۲۳۴۵۶۷۸۹'.indexOf(digit))
+
+function parsePdfQuantity(value) {
+  const raw = normalizeDigits(value).trim()
+  if (!raw) return null
+  const compact = raw.replace(/,/g, '').replace(/\s+/g, '')
+
+  const ratio = compact.match(/^(\d+)[/⁄](\d+)$/)
+  if (ratio) {
+    const available = Number(ratio[1])
+    const total = Number(ratio[2])
+    if (total < available) return null
+    return { quantity: total, inferredMissing: total - available, detail: '', ratio: true, source: raw }
+  }
+
+  const weightedCount = compact.match(/^(\d+(?:\.\d+)?)[x×✖✕*](\d+(?:\.\d+)?)(kg|kgs|lb|lbs)?(?:=(\d+(?:\.\d+)?))?$/i)
+  if (weightedCount) {
+    const count = Number(weightedCount[1])
+    const size = Number(weightedCount[2])
+    const unit = weightedCount[3] || ''
+    const explicitTotal = weightedCount[4] ? Number(weightedCount[4]) : null
+    return {
+      quantity: Number.isInteger(explicitTotal) ? explicitTotal : (unit ? count : count * size),
+      inferredMissing: 0,
+      detail: unit ? String(size) + unit.toLowerCase() : '',
+      ratio: false,
+      source: raw
+    }
+  }
+
+  const weightAndCount = compact.match(/^(\d+(?:\.\d+)?)(kg|kgs|lb|lbs)[-–—](\d+(?:\.\d+)?)$/i)
+  if (weightAndCount) {
+    return {
+      quantity: Number(weightAndCount[3]),
+      inferredMissing: 0,
+      detail: String(Number(weightAndCount[1])) + weightAndCount[2].toLowerCase(),
+      ratio: false,
+      source: raw
+    }
+  }
+
+  if (/^\d+$/.test(compact)) {
+    return { quantity: Number(compact), inferredMissing: 0, detail: '', ratio: false, source: raw }
+  }
+  return null
+}
+
+function parsePdfCount(value) {
+  const raw = normalizeDigits(value).trim()
+  if (!raw) return null
+  if (/^[-—–]+$/.test(raw)) return 0
+  const parsed = parsePdfQuantity(raw)
+  return parsed && Number.isInteger(parsed.quantity) ? parsed.quantity : null
+}
+
 async function parsePdf(file) {
   const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise
   const lines = []
+
   for (let pageNo = 1; pageNo <= pdf.numPages; pageNo += 1) {
     const page = await pdf.getPage(pageNo)
+    const pageWidth = page.getViewport({ scale: 1 }).width
     const content = await page.getTextContent()
     const grouped = new Map()
+
     for (const item of content.items) {
       if (!item.str || !item.str.trim()) continue
       const y = Math.round(item.transform[5] / 3) * 3
       if (!grouped.has(y)) grouped.set(y, [])
       grouped.get(y).push({ x: item.transform[4], text: item.str.trim() })
     }
-    for (const [y, parts] of [...grouped.entries()].sort((a,b) => b[0]-a[0])) {
-      const ordered = parts.sort((a,b) => a.x-b.x)
-      const text = ordered.map(part => part.text).join('  ').trim()
-      if (text) lines.push({ page: pageNo, text })
+
+    for (const [y, parts] of [...grouped.entries()].sort((a, b) => b[0] - a[0])) {
+      const ordered = parts.sort((a, b) => a.x - b.x)
+      if (ordered.length) lines.push({ page: pageNo, pageWidth, parts: ordered, text: ordered.map(part => part.text).join('  ').trim() })
     }
   }
-  if (!lines.length) throw new Error('لم أتمكن من استخراج نص من ملف PDF. قد يكون الملف ممسوحًا ضوئيًا كصورة ويحتاج OCR.')
-  const split = text => text.split(/\s{2,}|\t|\s*\|\s*/).map(v => v.trim()).filter(Boolean)
+
+  if (!lines.length) {
+    throw new Error('لم أتمكن من استخراج نص من ملف PDF. قد يكون الملف ممسوحًا ضوئيًا كصورة ويحتاج OCR.')
+  }
+
+  const split = text => text.split(/\s{2,}|\t|\s*\|\s*/).map(value => value.trim()).filter(Boolean)
   let headerIndex = -1
-  let headers = []
-  for (let i = 0; i < Math.min(lines.length, 80); i += 1) {
-    const mapped = split(lines[i].text).map(value => HEADER_LOOKUP[normalizeHeader(value)])
+  let headerAnchors = []
+
+  for (let i = 0; i < Math.min(lines.length, 100); i += 1) {
+    const mapped = lines[i].parts.map(part => HEADER_LOOKUP[normalizeHeader(part.text)])
     if (mapped.includes('item_name') && mapped.includes('quantity')) {
       headerIndex = i
-      headers = mapped
+      headerAnchors = lines[i].parts.map(part => ({
+        xRatio: part.x / lines[i].pageWidth,
+        field: HEADER_LOOKUP[normalizeHeader(part.text)] || null
+      }))
+      break
+    }
+
+    const fallbackMapped = split(lines[i].text).map(value => HEADER_LOOKUP[normalizeHeader(value)])
+    if (fallbackMapped.includes('item_name') && fallbackMapped.includes('quantity')) {
+      headerIndex = i
+      headerAnchors = []
       break
     }
   }
-  if (headerIndex < 0) throw new Error('لم أجد صف عناوين واضحًا داخل PDF. تأكد أن الجدول يحتوي على «اسم الصنف» و«الكمية»، وأن الأعمدة مفصولة بوضوح.')
+
+  if (headerIndex < 0) {
+    throw new Error('لم أجد صف عناوين واضحًا داخل PDF. يدعم النظام «الصنف» أو «Class Name» لاسم الأداة، و«عدد» أو «Number» أو «Quantity» للكمية.')
+  }
+
   const rows = []
+  let lastBaseName = ''
+
   for (let i = headerIndex + 1; i < lines.length; i += 1) {
-    const cells = split(lines[i].text)
-    if (cells.length < 2) continue
-    const values = {}
-    headers.forEach((field, index) => { if (field) values[field] = cells[index] || '' })
-    if (!values.item_name || values.quantity === undefined) continue
+    const line = lines[i]
+    const cells = {}
+
+    if (headerAnchors.length) {
+      for (const part of line.parts) {
+        const xRatio = part.x / line.pageWidth
+        let nearest = null
+        let nearestDistance = Infinity
+        for (const anchor of headerAnchors) {
+          const distance = Math.abs(anchor.xRatio - xRatio)
+          if (distance < nearestDistance) {
+            nearest = anchor
+            nearestDistance = distance
+          }
+        }
+        if (!nearest || nearestDistance > 0.16 || !nearest.field) continue
+        cells[nearest.field] = cells[nearest.field] ? cells[nearest.field] + ' ' + part.text : part.text
+      }
+    } else {
+      const parts = split(line.text)
+      const mappedFields = ['item_name', 'quantity', 'missing_quantity', 'damaged_quantity', 'notes']
+      mappedFields.forEach((field, index) => {
+        if (parts[index]) cells[field] = parts[index]
+      })
+    }
+
+    let itemName = String(cells.item_name || '').trim()
+    const quantityRaw = String(cells.quantity || '').trim()
+    const notesRaw = String(cells.notes || '').trim()
+    if (!itemName && !quantityRaw && !notesRaw) continue
+
+    if (itemName && !quantityRaw) {
+      if (rows.length) {
+        rows[rows.length - 1].item_name = (rows[rows.length - 1].item_name + ' ' + itemName).trim()
+        lastBaseName = rows[rows.length - 1].item_name
+      }
+      continue
+    }
+
+    const parsedQuantity = parsePdfQuantity(quantityRaw)
+    if (!itemName && parsedQuantity?.detail && lastBaseName) {
+      itemName = lastBaseName + ' (' + parsedQuantity.detail + ')'
+    } else if (!itemName && !parsedQuantity?.detail) {
+      continue
+    }
+
+    if (!itemName) continue
+    if (cells.item_name) lastBaseName = String(cells.item_name).trim()
+
+    const explicitMissing = parsePdfCount(cells.missing_quantity)
+    const missingQuantity = parsedQuantity?.ratio
+      ? (explicitMissing !== null && explicitMissing > 0 ? explicitMissing : parsedQuantity.inferredMissing)
+      : (explicitMissing ?? 0)
+
+    const rowNotes = []
+    if (notesRaw) rowNotes.push(notesRaw)
+    if (parsedQuantity?.ratio) {
+      rowNotes.push('العدد في الملف: ' + parsedQuantity.source + '؛ المفقود المحسوب من النسبة: ' + parsedQuantity.inferredMissing)
+    }
+
     rows.push({
-      sourceRow: 'PDF-' + lines[i].page + '-' + (i - headerIndex),
-      item_name: String(values.item_name || '').trim(),
-      item_code: String(values.item_code || '').trim(),
-      category: String(values.category || '').trim(),
-      quantity: asInteger(values.quantity),
-      damaged_quantity: values.damaged_quantity ? asInteger(values.damaged_quantity) : 0,
-      missing_quantity: values.missing_quantity ? asInteger(values.missing_quantity) : 0,
-      unit: String(values.unit || 'قطعة').trim() || 'قطعة',
-      notes: String(values.notes || '').trim()
+      sourceRow: 'PDF-' + line.page + '-' + (i - headerIndex),
+      item_name: itemName,
+      item_code: String(cells.item_code || '').trim(),
+      category: String(cells.category || '').trim(),
+      quantity: parsedQuantity?.quantity ?? null,
+      damaged_quantity: 0,
+      missing_quantity: missingQuantity,
+      unit: String(cells.unit || 'قطعة').trim() || 'قطعة',
+      notes: rowNotes.join(' | ')
     })
   }
-  if (!rows.length) throw new Error('تم العثور على العناوين لكن لم أجد صفوف بيانات قابلة للقراءة. جرّب ملف Excel أو PDF نصيًا بتنسيق جدول واضح.')
+
+  if (!rows.length) {
+    throw new Error('تم العثور على العناوين لكن لم أجد صفوف بيانات قابلة للقراءة. تأكد من وجود اسم أداة وعدد في كل صف.')
+  }
   if (rows.length > 5000) throw new Error('الحد الأقصى للاستيراد في المرة الواحدة هو 5,000 صف.')
   return rows
 }
