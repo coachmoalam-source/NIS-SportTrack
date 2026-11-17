@@ -12,20 +12,22 @@ const FIELD_ALIASES = {
   item_name: ['اسم الصنف', 'اسم الاداه', 'اسم الأداة', 'الصنف', 'الأداة', 'item name', 'item', 'name', 'equipment', 'equipment name'],
   item_code: ['كود الصنف', 'كود', 'الكود', 'item code', 'code', 'sku'],
   category: ['التصنيف', 'الفئة', 'نوع اللعبة', 'category', 'type'],
-  quantity: ['الكمية', 'الرصيد', 'الاجمالي', 'إجمالي الكمية', 'quantity', 'qty', 'stock', 'total'],
+  quantity: ['الكمية', 'الرصيد', 'الاجمالي', 'إجمالي الكمية', 'عدد', 'العدد', 'quantity', 'qty', 'count', 'number', 'stock', 'total'],
   damaged_quantity: ['التالف', 'كمية التالف', 'damaged', 'damaged quantity'],
   missing_quantity: ['المفقود', 'كمية المفقود', 'missing', 'missing quantity'],
+  used: ['used'],
   unit: ['الوحدة', 'وحدة القياس', 'unit', 'uom'],
-  notes: ['ملاحظات', 'الوصف', 'notes', 'description']
+  notes: ['ملاحظات', 'الوصف', 'notes', 'description', 'comment', 'comments']
 }
 
 const normalizeHeader = value => String(value || '')
+  .normalize('NFKC')
   .trim()
   .toLowerCase()
   .replace(/[أإآ]/g, 'ا')
   .replace(/[ىي]/g, 'ي')
   .replace(/[ًٌٍَُِّْـ]/g, '')
-  .replace(/[\s_\-]+/g, ' ')
+  .replace(/[\s_\-]+/g, '')
 
 const HEADER_LOOKUP = Object.entries(FIELD_ALIASES).reduce((all, entry) => {
   entry[1].forEach(alias => { all[normalizeHeader(alias)] = entry[0] })
@@ -149,58 +151,208 @@ async function parseWordDocument(file) {
   return rows
 }
 
+function mergePdfParts(parts) {
+  const sorted = [...parts].sort((a, b) => a.x - b.x)
+  const groups = []
+  for (const part of sorted) {
+    const current = groups[groups.length - 1]
+    if (!current || part.x > current.maxX + 10) {
+      groups.push({ parts: [part], minX: part.x, maxX: part.x + (part.width || 0) })
+    } else {
+      current.parts.push(part)
+      current.maxX = Math.max(current.maxX, part.x + (part.width || 0))
+    }
+  }
+  return groups.map(group => {
+    const rtl = group.parts.some(part => /[\u0600-\u06FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(part.text))
+    const ordered = [...group.parts].sort((a, b) => rtl ? b.x - a.x : a.x - b.x)
+    return {
+      text: ordered.map(part => part.text).join(''),
+      minX: group.minX,
+      maxX: group.maxX,
+      center: (group.minX + group.maxX) / 2
+    }
+  })
+}
+
+function pdfCellText(parts) {
+  if (!parts?.length) return ''
+  const rtl = parts.some(part => /[\u0600-\u06FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(part.text))
+  return [...parts]
+    .sort((a, b) => rtl ? b.x - a.x : a.x - b.x)
+    .map(part => part.text)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function parsePdfQuantity(raw) {
+  const value = String(raw || '')
+    .normalize('NFKC')
+    .replace(/[٠-٩]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+    .replace(/[٬,]/g, '')
+    .replace(/\s+/g, '')
+    .replace(/[✕✖×]/g, 'x')
+
+  let match = value.match(/^(\d+)x(\d+(?:\.\d+)?)(kg|lb)$/i)
+  if (match) return { quantity: Number(match[1]), variant: match[2] + match[3].toLowerCase() }
+
+  match = value.match(/^\d+x\d+=(\d+)$/i)
+  if (match) return { quantity: Number(match[1]), variant: '' }
+
+  match = value.match(/^(\d+(?:\.\d+)?)(kg|lb)[\-–—−](\d+)$/i)
+  if (match) return { quantity: Number(match[3]), variant: match[1] + match[2].toLowerCase() }
+
+  match = value.match(/^(\d+)\/\d+$/)
+  if (match) return { quantity: Number(match[1]), variant: '' }
+
+  if (/^\d+$/.test(value)) return { quantity: Number(value), variant: '' }
+  return null
+}
+
 async function parsePdf(file) {
   const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise
-  const lines = []
+  let columns = null
+  let headerY = null
+  const rows = []
+
   for (let pageNo = 1; pageNo <= pdf.numPages; pageNo += 1) {
     const page = await pdf.getPage(pageNo)
     const content = await page.getTextContent()
     const grouped = new Map()
+
     for (const item of content.items) {
       if (!item.str || !item.str.trim()) continue
       const y = Math.round(item.transform[5] / 3) * 3
       if (!grouped.has(y)) grouped.set(y, [])
-      grouped.get(y).push({ x: item.transform[4], text: item.str.trim() })
+      grouped.get(y).push({
+        x: item.transform[4],
+        width: item.width || 0,
+        text: item.str.trim()
+      })
     }
-    for (const [y, parts] of [...grouped.entries()].sort((a,b) => b[0]-a[0])) {
-      const ordered = parts.sort((a,b) => a.x-b.x)
-      const text = ordered.map(part => part.text).join('  ').trim()
-      if (text) lines.push({ page: pageNo, text })
+
+    const lines = [...grouped.entries()]
+      .map(([y, parts]) => ({ y, parts }))
+      .sort((a, b) => b.y - a.y)
+
+    if (!columns) {
+      const headerLine = lines.map(line => ({
+        ...line,
+        groups: mergePdfParts(line.parts)
+      })).find(line => {
+        const fields = line.groups.map(group => HEADER_LOOKUP[normalizeHeader(group.text)])
+        return fields.includes('item_name') && fields.includes('quantity')
+      })
+
+      if (!headerLine) continue
+
+      columns = headerLine.groups
+        .map(group => ({ ...group, field: HEADER_LOOKUP[normalizeHeader(group.text)] }))
+        .filter(group => group.field)
+        .sort((a, b) => a.center - b.center)
+
+      if (!columns.some(column => column.field === 'item_name') ||
+          !columns.some(column => column.field === 'quantity')) {
+        columns = null
+        continue
+      }
+      headerY = headerLine.y
     }
-  }
-  if (!lines.length) throw new Error('لم أتمكن من استخراج نص من ملف PDF. قد يكون الملف ممسوحًا ضوئيًا كصورة ويحتاج OCR.')
-  const split = text => text.split(/\s{2,}|\t|\s*\|\s*/).map(v => v.trim()).filter(Boolean)
-  let headerIndex = -1
-  let headers = []
-  for (let i = 0; i < Math.min(lines.length, 80); i += 1) {
-    const mapped = split(lines[i].text).map(value => HEADER_LOOKUP[normalizeHeader(value)])
-    if (mapped.includes('item_name') && mapped.includes('quantity')) {
-      headerIndex = i
-      headers = mapped
-      break
-    }
-  }
-  if (headerIndex < 0) throw new Error('لم أجد صف عناوين واضحًا داخل PDF. تأكد أن الجدول يحتوي على «اسم الصنف» و«الكمية»، وأن الأعمدة مفصولة بوضوح.')
-  const rows = []
-  for (let i = headerIndex + 1; i < lines.length; i += 1) {
-    const cells = split(lines[i].text)
-    if (cells.length < 2) continue
-    const values = {}
-    headers.forEach((field, index) => { if (field) values[field] = cells[index] || '' })
-    if (!values.item_name || values.quantity === undefined) continue
-    rows.push({
-      sourceRow: 'PDF-' + lines[i].page + '-' + (i - headerIndex),
-      item_name: String(values.item_name || '').trim(),
-      item_code: String(values.item_code || '').trim(),
-      category: String(values.category || '').trim(),
-      quantity: asInteger(values.quantity),
-      damaged_quantity: values.damaged_quantity ? asInteger(values.damaged_quantity) : 0,
-      missing_quantity: values.missing_quantity ? asInteger(values.missing_quantity) : 0,
-      unit: String(values.unit || 'قطعة').trim() || 'قطعة',
-      notes: String(values.notes || '').trim()
+
+    const boundaries = columns.slice(0, -1).map((column, index) => {
+      const next = columns[index + 1]
+      const midpoint = (column.center + next.center) / 2
+      // The item-name cells are wider than their short header label.
+      return index === 0 ? Math.max(midpoint, next.minX - 5) : midpoint
     })
+
+    let lastBaseName = ''
+    let lastRow = null
+    let lastRowY = null
+    let pendingName = ''
+    let pendingNameY = null
+
+    for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+      const line = lines[lineIndex]
+      if (pageNo === 1 && headerY !== null && line.y >= headerY) continue
+
+      const cells = {}
+      for (const column of columns) cells[column.field] = []
+      for (const part of line.parts) {
+        const x = part.x + (part.width || 0) / 2
+        let columnIndex = boundaries.findIndex(boundary => x < boundary)
+        if (columnIndex < 0) columnIndex = columns.length - 1
+        const field = columns[columnIndex].field
+        cells[field].push(part)
+      }
+
+      const itemName = pdfCellText(cells.item_name)
+      const quantityText = pdfCellText(cells.quantity)
+      const missingText = pdfCellText(cells.missing_quantity)
+      const notes = pdfCellText(cells.notes)
+      const hasQuantity = quantityText && !/^[—–-]+$/.test(quantityText)
+
+      if (itemName && !hasQuantity) {
+        if (lastRow && lastRowY !== null && Math.abs(line.y - lastRowY) <= 55) {
+          lastRow.item_name = (lastRow.item_name + ' ' + itemName).trim()
+          lastBaseName = lastRow.item_name
+          lastRowY = line.y
+        } else {
+          pendingName = itemName
+          pendingNameY = line.y
+        }
+        if (notes && lastRow && lastRowY !== null && Math.abs(line.y - lastRowY) <= 55) {
+          lastRow.notes = [lastRow.notes, notes].filter(Boolean).join(' — ')
+        }
+        continue
+      }
+
+      if (!hasQuantity) {
+        if (notes && lastRow && lastRowY !== null && Math.abs(line.y - lastRowY) <= 55) {
+          lastRow.notes = [lastRow.notes, notes].filter(Boolean).join(' — ')
+          lastRowY = line.y
+        }
+        continue
+      }
+
+      const parsed = parsePdfQuantity(quantityText)
+      const pendingIsClose = pendingName && pendingNameY !== null && Math.abs(line.y - pendingNameY) <= 55
+      let baseName = itemName || (pendingIsClose ? pendingName : '')
+      if (!baseName && parsed?.variant && lastBaseName) baseName = lastBaseName
+      if (!baseName) continue
+
+      const itemLabel = parsed?.variant ? baseName + ' ' + parsed.variant : baseName
+      const missingValue = missingText && !/^[—–-]+$/.test(missingText)
+        ? asInteger(missingText)
+        : 0
+
+      const row = {
+        sourceRow: 'PDF-' + pageNo + '-' + (lineIndex + 1),
+        item_name: itemLabel.trim(),
+        item_code: '',
+        category: '',
+        quantity: parsed ? parsed.quantity : NaN,
+        damaged_quantity: 0,
+        missing_quantity: missingValue === null ? 0 : missingValue,
+        unit: 'قطعة',
+        notes
+      }
+      rows.push(row)
+      lastRow = row
+      lastRowY = line.y
+      lastBaseName = itemName || (pendingIsClose ? pendingName : lastBaseName)
+      pendingName = ''
+      pendingNameY = null
+    }
   }
-  if (!rows.length) throw new Error('تم العثور على العناوين لكن لم أجد صفوف بيانات قابلة للقراءة. جرّب ملف Excel أو PDF نصيًا بتنسيق جدول واضح.')
+
+  if (!columns) {
+    throw new Error('لم أتعرف على عناوين جدول PDF. استخدم أعمدة «الصنف» و«عدد» أو «اسم الصنف» و«الكمية».')
+  }
+  if (!rows.length) {
+    throw new Error('تعرفت على عناوين PDF لكن لم أجد صفوف بيانات قابلة للقراءة. تأكد أن كل صنف أمامه عدد واضح.')
+  }
   if (rows.length > 5000) throw new Error('الحد الأقصى للاستيراد في المرة الواحدة هو 5,000 صف.')
   return rows
 }
