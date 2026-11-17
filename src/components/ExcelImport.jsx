@@ -16,7 +16,7 @@ const FIELD_ALIASES = {
   damaged_quantity: ['التالف', 'كمية التالف', 'damaged', 'damaged quantity'],
   missing_quantity: ['المفقود', 'كمية المفقود', 'missing', 'missing quantity'],
   unit: ['الوحدة', 'وحدة القياس', 'unit', 'uom'],
-  notes: ['ملاحظات', 'الوصف', 'comment', 'comments', 'notes', 'description']
+  notes: ['ملاحظات', 'الوصف', 'comment', 'comments', 'used', 'notes', 'description']
 }
 
 const normalizeHeader = value => String(value || '')
