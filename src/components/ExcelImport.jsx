@@ -9,40 +9,41 @@ import { supabase } from '../lib/supabase'
 import './ExcelImport.css'
 
 // Central synonym dictionary: every source term maps to one canonical inventory field.
-const FIELD_ALIASES = {
-  item_name: ['اسم الصنف', 'الصنف', 'صنف', 'اسم الاداه', 'اسم الأداة', 'الأداة', 'اسم المعدة', 'اسم المعده', 'المعدة', 'المعده', 'اسم اللعبة', 'اسم اللعبه', 'البيان', 'بيان الصنف', 'الاداة الرياضية', 'الأداة الرياضية', 'class', 'class name', 'item name', 'item', 'name', 'equipment', 'equipment name', 'description of item'],
-  item_code: ['كود الصنف', 'كود', 'الكود', 'رقم الصنف', 'رقم الكود', 'item code', 'code', 'sku', 'item number'],
-  category: ['التصنيف', 'الفئة', 'نوع اللعبة', 'نوع النشاط', 'القسم', 'category', 'type', 'sport', 'activity'],
-  quantity: ['الكمية', 'كمية', 'عدد', 'العدد', 'الرصيد', 'الرصيد الحالي', 'الاجمالي', 'إجمالي الكمية', 'اجمالي العدد', 'العدد الكلي', 'الموجود', 'المتوفر', 'عدد القطع', 'عدد الادوات', 'number', 'quantity', 'qty', 'count', 'stock', 'total', 'available', 'in stock'],
-  damaged_quantity: ['التالف', 'تالف', 'كمية التالف', 'عدد التالف', 'المستهلك', 'المكسور', 'damaged', 'damaged quantity', 'broken', 'broken quantity'],
-  missing_quantity: ['المفقود', 'مفقود', 'كمية المفقود', 'عدد المفقود', 'العجز', 'النقص', 'كمية العجز', 'missing', 'missing quantity', 'shortage', 'shortage quantity'],
-  unit: ['الوحدة', 'وحدة القياس', 'وحدة', 'unit', 'uom', 'measurement unit'],
-  notes: ['ملاحظات', 'ملاحظة', 'الوصف', 'الحالة', 'حالة الصنف', 'التعليق', 'تعليقات', 'مستخدم', 'المستخدم', 'used', 'use', 'comment', 'comments', 'notes', 'description', 'condition', 'status']
-}
-
+// Import headings are resolved from Supabase, not hard-coded in the client.
 const normalizeHeader = value => String(value || '')
   .normalize('NFKC')
-  .replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, '')
-  .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+  .replace(/[\\u200E\\u200F\\u202A-\\u202E\\u2066-\\u2069\\uFEFF]/g, '')
+  .replace(/[\\u064B-\\u065F\\u0670\\u0640]/g, '')
   .trim()
   .toLowerCase()
   .replace(/[أإآٱ]/g, 'ا')
   .replace(/[ىي]/g, 'ي')
-  .replace(/[\s_\-]+/g, ' ')
+  .replace(/[\\s_\\-]+/g, ' ')
 
-const HEADER_LOOKUP = Object.entries(FIELD_ALIASES).reduce((all, entry) => {
-  entry[1].forEach(alias => { all[normalizeHeader(alias)] = entry[0] })
-  return all
-}, {})
+function buildHeaderResolver(aliasRows) {
+  const lookup = {}
+  for (const row of aliasRows || []) {
+    if (!row.is_active || !row.alias || !row.canonical_field) continue
+    lookup[normalizeHeader(row.alias)] = row.canonical_field
+  }
+  return value => {
+    const normalized = normalizeHeader(value)
+    if (lookup[normalized]) return lookup[normalized]
+    const matches = Object.entries(lookup)
+      .filter(([alias]) => alias.length >= 3 && normalized.includes(alias))
+      .sort((a, b) => b[0].length - a[0].length)
+    return matches[0]?.[1] || null
+  }
+}
 
-const resolveHeader = value => {
-  const normalized = normalizeHeader(value)
-  if (HEADER_LOOKUP[normalized]) return HEADER_LOOKUP[normalized]
-  // Also recognize a known heading embedded in a longer PDF text fragment.
-  const matches = Object.entries(HEADER_LOOKUP)
-    .filter(([alias]) => alias.length >= 3 && normalized.includes(alias))
-    .sort((a, b) => b[0].length - a[0].length)
-  return matches[0]?.[1] || null
+async function loadHeaderResolver() {
+  const { data, error } = await supabase
+    .from('inventory_import_aliases')
+    .select('canonical_field, alias, is_active')
+    .eq('is_active', true)
+  if (error) throw new Error('تعذر تحميل قاموس المصطلحات من قاعدة البيانات: ' + error.message)
+  if (!data?.length) throw new Error('قاموس مصطلحات استيراد المخزون فارغ في قاعدة البيانات.')
+  return buildHeaderResolver(data)
 }
 
 const cellText = cell => {
@@ -61,12 +62,12 @@ const asInteger = value => {
 
 const slugCode = value => String(value || '').toUpperCase().replace(/[^A-Z0-9]+/g, '').slice(0, 3) || 'BR'
 
-function findHeaderRow(sheet) {
+function findHeaderRow(sheet, resolveHeader) {
   const max = Math.min(sheet.rowCount, 10)
   for (let rowNumber = 1; rowNumber <= max; rowNumber += 1) {
     const row = sheet.getRow(rowNumber)
     const headers = row.values.slice(1).map(normalizeHeader)
-    const mapped = headers.map(header => HEADER_LOOKUP[header])
+    const mapped = headers.map(header => resolveHeader(header))
     if (mapped.includes('item_name') && mapped.includes('quantity')) {
       return { rowNumber, headers: mapped }
     }
@@ -74,12 +75,12 @@ function findHeaderRow(sheet) {
   return null
 }
 
-async function parseWorkbook(file) {
+async function parseWorkbook(file, resolveHeader) {
   const workbook = new ExcelJS.Workbook()
   await workbook.xlsx.load(await file.arrayBuffer())
   const sheet = workbook.worksheets[0]
   if (!sheet) throw new Error('ملف Excel لا يحتوي على ورقة عمل.')
-  const header = findHeaderRow(sheet)
+  const header = findHeaderRow(sheet, resolveHeader)
   if (!header) throw new Error('لم أجد صف العناوين. يجب أن يحتوي الملف على عمود «اسم الصنف» وعمود «الكمية».')
   const rows = []
   for (let rowNumber = header.rowNumber + 1; rowNumber <= sheet.rowCount; rowNumber += 1) {
@@ -107,7 +108,7 @@ async function parseWorkbook(file) {
 }
 
 
-async function parseWordDocument(file) {
+async function parseWordDocument(file, resolveHeader) {
   const arrayBuffer = await file.arrayBuffer()
   const { value: html } = await mammoth.convertToHtml({ arrayBuffer })
   const documentNode = new DOMParser().parseFromString(html, 'text/html')
@@ -217,7 +218,7 @@ function parsePdfCount(value) {
   return parsed && Number.isInteger(parsed.quantity) ? parsed.quantity : null
 }
 
-async function parsePdf(file) {
+async function parsePdf(file, resolveHeader) {
   const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise
   const lines = []
 
@@ -412,7 +413,7 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
     }
     setParsing(true)
     try {
-      const parsed = isPdf ? await parsePdf(file) : isWord ? await parseWordDocument(file) : await parseWorkbook(file)
+      const resolveHeader = await loadHeaderResolver()\n      const parsed = isPdf ? await parsePdf(file, resolveHeader) : isWord ? await parseWordDocument(file, resolveHeader) : await parseWorkbook(file, resolveHeader)
       setRows(validateRows(parsed))
     } catch (error) {
       setFileError(error.message || 'تعذر قراءة الملف.')
