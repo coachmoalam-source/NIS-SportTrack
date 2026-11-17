@@ -20,11 +20,13 @@ const FIELD_ALIASES = {
 }
 
 const normalizeHeader = value => String(value || '')
+  .normalize('NFKC')
+  .replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, '')
+  .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
   .trim()
   .toLowerCase()
-  .replace(/[أإآ]/g, 'ا')
+  .replace(/[أإآٱ]/g, 'ا')
   .replace(/[ىي]/g, 'ي')
-  .replace(/[ًٌٍَُِّْـ]/g, '')
   .replace(/[\s_\-]+/g, ' ')
 
 const HEADER_LOOKUP = Object.entries(FIELD_ALIASES).reduce((all, entry) => {
