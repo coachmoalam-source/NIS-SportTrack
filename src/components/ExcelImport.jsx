@@ -219,22 +219,30 @@ async function parsePdf(file) {
   for (let pageNo = 1; pageNo <= pdf.numPages; pageNo += 1) {
     const page = await pdf.getPage(pageNo)
     const content = await page.getTextContent()
-    const grouped = new Map()
-
-    for (const item of content.items) {
-      if (!item.str || !item.str.trim()) continue
-      const y = Math.round(item.transform[5] / 3) * 3
-      if (!grouped.has(y)) grouped.set(y, [])
-      grouped.get(y).push({
+    const positionedItems = content.items
+      .filter(item => item.str && item.str.trim())
+      .map(item => ({
         x: item.transform[4],
+        y: item.transform[5],
         width: item.width || 0,
         text: item.str.trim()
-      })
-    }
-
-    const lines = [...grouped.entries()]
-      .map(([y, parts]) => ({ y, parts }))
+      }))
       .sort((a, b) => b.y - a.y)
+
+    // Group by baseline proximity rather than rounded buckets; PDF fonts often
+    // place Arabic labels and adjacent numeric cells a fraction apart.
+    const lines = []
+    for (const part of positionedItems) {
+      const current = lines[lines.length - 1]
+      if (!current || Math.abs(part.y - current.y) > 8) {
+        lines.push({ y: part.y, parts: [part], yTotal: part.y, count: 1 })
+      } else {
+        current.parts.push(part)
+        current.yTotal += part.y
+        current.count += 1
+        current.y = current.yTotal / current.count
+      }
+    }
 
     if (!columns) {
       const headerCandidate = lines.map(line => ({
