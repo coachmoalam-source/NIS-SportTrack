@@ -237,7 +237,7 @@ async function parsePdf(file) {
       .sort((a, b) => b.y - a.y)
 
     if (!columns) {
-      const headerLine = lines.map(line => ({
+      const headerCandidate = lines.map(line => ({
         ...line,
         groups: mergePdfParts(line.parts)
       })).find(line => {
@@ -245,9 +245,12 @@ async function parsePdf(file) {
         return fields.includes('item_name') && fields.includes('quantity')
       })
 
-      if (!headerLine) continue
+      if (!headerCandidate) continue
 
-      columns = headerLine.groups
+      // Arabic and English header labels can sit on slightly different baselines.
+      const headerLines = lines.filter(line => Math.abs(line.y - headerCandidate.y) <= 12)
+      const headerGroups = mergePdfParts(headerLines.flatMap(line => line.parts))
+      columns = headerGroups
         .map(group => ({ ...group, field: HEADER_LOOKUP[normalizeHeader(group.text)] }))
         .filter(group => group.field)
         .sort((a, b) => a.center - b.center)
@@ -257,7 +260,7 @@ async function parsePdf(file) {
         columns = null
         continue
       }
-      headerY = headerLine.y
+      headerY = Math.min(...headerLines.map(line => line.y))
     }
 
     const boundaries = columns.slice(0, -1).map((column, index) => {
