@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import ExcelJS from 'exceljs'
+import mammoth from 'mammoth'
 import * as pdfjsLib from 'pdfjs-dist'
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker
@@ -92,6 +93,61 @@ async function parseWorkbook(file) {
   return rows
 }
 
+
+async function parseWordDocument(file) {
+  const arrayBuffer = await file.arrayBuffer()
+  const { value: html } = await mammoth.convertToHtml({ arrayBuffer })
+  const documentNode = new DOMParser().parseFromString(html, 'text/html')
+  const tables = [...documentNode.querySelectorAll('table')]
+  if (!tables.length) {
+    throw new Error('ملف Word لا يحتوي على جدول بيانات واضح. ضع بيانات المخزون في جدول بعناوين مثل «اسم الصنف» و«الكمية».')
+  }
+
+  const rows = []
+  let tableNumber = 0
+  for (const table of tables) {
+    tableNumber += 1
+    const matrix = [...table.querySelectorAll('tr')].map(row =>
+      [...row.querySelectorAll('th, td')].map(cell => cell.textContent.trim())
+    )
+    let headerIndex = -1
+    let headers = []
+    for (let index = 0; index < Math.min(matrix.length, 10); index += 1) {
+      const mapped = matrix[index].map(value => HEADER_LOOKUP[normalizeHeader(value)])
+      if (mapped.includes('item_name') && mapped.includes('quantity')) {
+        headerIndex = index
+        headers = mapped
+        break
+      }
+    }
+    if (headerIndex < 0) continue
+
+    for (let index = headerIndex + 1; index < matrix.length; index += 1) {
+      const values = {}
+      headers.forEach((field, columnIndex) => {
+        if (field) values[field] = matrix[index][columnIndex] || ''
+      })
+      if (!Object.values(values).some(value => String(value || '').trim())) continue
+      rows.push({
+        sourceRow: 'WORD-' + tableNumber + '-' + (index + 1),
+        item_name: String(values.item_name || '').trim(),
+        item_code: String(values.item_code || '').trim(),
+        category: String(values.category || '').trim(),
+        quantity: asInteger(values.quantity),
+        damaged_quantity: values.damaged_quantity ? asInteger(values.damaged_quantity) : 0,
+        missing_quantity: values.missing_quantity ? asInteger(values.missing_quantity) : 0,
+        unit: String(values.unit || 'قطعة').trim() || 'قطعة',
+        notes: String(values.notes || '').trim()
+      })
+    }
+  }
+
+  if (!rows.length) {
+    throw new Error('لم أجد جدولاً بعناوين واضحة في ملف Word. يجب أن يحتوي الجدول على «اسم الصنف» و«الكمية».')
+  }
+  if (rows.length > 5000) throw new Error('الحد الأقصى للاستيراد في المرة الواحدة هو 5,000 صف.')
+  return rows
+}
 
 async function parsePdf(file) {
   const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise
@@ -195,8 +251,9 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
     setFileName(file.name)
     const isExcel = /\.xlsx$/i.test(file.name)
     const isPdf = /\.pdf$/i.test(file.name)
-    if (!isExcel && !isPdf) {
-      setFileError('صيغة الملف غير مدعومة. اختر ملف Excel بصيغة XLSX أو ملف PDF.')
+    const isWord = /\.docx$/i.test(file.name)
+    if (!isExcel && !isPdf && !isWord) {
+      setFileError('صيغة الملف غير مدعومة. اختر Excel بصيغة XLSX أو PDF أو Word بصيغة DOCX. ملفات Word القديمة DOC غير مدعومة حالياً.')
       return
     }
     if (file.size > 15 * 1024 * 1024) {
@@ -205,7 +262,7 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
     }
     setParsing(true)
     try {
-      const parsed = isPdf ? await parsePdf(file) : await parseWorkbook(file)
+      const parsed = isPdf ? await parsePdf(file) : isWord ? await parseWordDocument(file) : await parseWorkbook(file)
       setRows(validateRows(parsed))
     } catch (error) {
       setFileError(error.message || 'تعذر قراءة الملف.')
@@ -417,8 +474,8 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
       <div className="excel-import-intro">
         <div className="excel-import-icon"><FileSpreadsheet size={25} /></div>
         <div>
-          <h3>استيراد المخزون من Excel أو PDF</h3>
-          <p>ارفع ملف الفرع، راجع البيانات والأخطاء، ثم اعتمد تحديث الأرصدة.</p>
+          <h3>رفع ملفات المخزون من Excel أو PDF أو Word</h3>
+          <p>ارفع الملف من الموبايل أو الكمبيوتر، راجع البيانات والأخطاء، ثم اعتمد تحديث الأرصدة.</p>
         </div>
         <button className="button button-light" type="button" onClick={downloadTemplate}><Download size={16} /> تحميل نموذج Excel</button>
       </div>
@@ -437,10 +494,10 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
         )}
 
         <label className="excel-upload-zone">
-          <input type="file" accept=".xlsx,.pdf,application/pdf" onChange={handleFile} disabled={!canManage || parsing || importing} />
+          <input type="file" accept=".xlsx,.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleFile} disabled={!canManage || parsing || importing} />
           <Upload size={24} />
-          <strong>{parsing ? 'جارٍ قراءة الملف...' : fileName || 'اضغط لاختيار ملف Excel أو PDF'}</strong>
-          <span>Excel XLSX أو PDF يحتوي على نص قابل للتحديد • حتى 15 ميجابايت • حتى 5,000 صف</span>
+          <strong>{parsing ? 'جارٍ قراءة الملف...' : fileName || 'اضغط لاختيار ملف Excel أو PDF أو Word'}</strong>
+          <span>Excel XLSX • PDF نصي قابل للتحديد • Word DOCX • حتى 15 ميجابايت • حتى 5,000 صف</span>
         </label>
 
         {fileError && <div className="excel-message error"><AlertCircle size={17} />{fileError}</div>}
