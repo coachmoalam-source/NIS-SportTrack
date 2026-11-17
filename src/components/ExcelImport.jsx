@@ -16,10 +16,12 @@ const FIELD_ALIASES = {
   damaged_quantity: ['التالف', 'كمية التالف', 'damaged', 'damaged quantity'],
   missing_quantity: ['المفقود', 'كمية المفقود', 'missing', 'missing quantity'],
   unit: ['الوحدة', 'وحدة القياس', 'unit', 'uom'],
-  notes: ['ملاحظات', 'الوصف', 'notes', 'description']
+  notes: ['ملاحظات', 'الوصف', 'notes', 'description', 'comment', 'comments', 'remark', 'remarks']
 }
 
 const normalizeHeader = value => String(value || '')
+  .normalize('NFKC')
+  .replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '')
   .trim()
   .toLowerCase()
   .replace(/[أإآ]/g, 'ا')
@@ -158,32 +160,38 @@ function pdfLineGroups(items, pageNo) {
     .filter(item => item.str && item.str.trim())
     .map(item => {
       const x = Number(item.transform?.[4] || 0)
-      const y = Number(item.transform?.[5] || 0)
+      const baselineY = Number(item.transform?.[5] || 0)
       const width = Number(item.width || 0)
+      const height = Number(item.height || Math.abs(item.transform?.[3] || 0))
       const left = Math.min(x, x + width)
       const right = Math.max(x, x + width)
       return {
         x,
-        y,
+        y: baselineY + height / 2,
         left,
         right,
         center: (left + right) / 2,
         text: item.str.trim(),
         dir: item.dir || 'ltr',
-        height: Number(item.height || Math.abs(item.transform?.[3] || 0))
+        height
       }
     })
     .sort((a, b) => b.y - a.y || a.left - b.left)
 
   const lines = []
   for (const item of positioned) {
-    let line = lines.find(candidate => Math.abs(candidate.y - item.y) <= 2.5)
+    let line = lines.find(candidate => {
+      const referenceHeight = Math.min(item.height || 20, candidate.maxHeight || 20)
+      const tolerance = Math.max(5, Math.min(9, referenceHeight * 0.22))
+      return Math.abs(candidate.y - item.y) <= tolerance
+    })
     if (!line) {
-      line = { page: pageNo, y: item.y, items: [] }
+      line = { page: pageNo, y: item.y, maxHeight: item.height || 20, items: [] }
       lines.push(line)
     }
     line.items.push(item)
     line.y = line.items.reduce((sum, part) => sum + part.y, 0) / line.items.length
+    line.maxHeight = Math.max(line.maxHeight, item.height || 0)
   }
 
   return lines
@@ -281,17 +289,56 @@ function valuesFromPdfLine(line, columns) {
   return values
 }
 
+function parsePdfQuantity(value) {
+  const raw = String(value || '').trim()
+  const normalized = raw
+    .normalize('NFKC')
+    .replace(/[٠-٩]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+    .replace(/[۰-۹]/g, digit => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
+    .replace(/[\s٬,]/g, '')
+
+  if (!normalized || /^[—–-]+$/.test(normalized)) return { quantity: null, detail: '' }
+
+  const ratio = normalized.match(/^(\d+)[/／](\d+)$/)
+  if (ratio) return { quantity: Number(ratio[2]), detail: 'العدد كما ورد بالملف: ' + raw }
+
+  const weighted = normalized.match(/^(\d+)[x×✖*](\d+(?:\.\d+)?)(kg|kgs|lb|lbs|g|gram|grams)$/i)
+  if (weighted) return { quantity: Number(weighted[1]), detail: raw }
+
+  const product = normalized.match(/^(\d+)[x×✖*](\d+)=(\d+)$/)
+  if (product) return { quantity: Number(product[3]), detail: raw }
+
+  const trailingWeight = normalized.match(/^\d+(?:\.\d+)?(?:kg|kgs|lb|lbs|g|gram|grams)[–-](\d+)$/i)
+  if (trailingWeight) return { quantity: Number(trailingWeight[1]), detail: raw }
+
+  const integer = asInteger(normalized)
+  return { quantity: integer, detail: Number.isInteger(integer) ? '' : raw }
+}
+
+function parsePdfOptionalCount(value) {
+  const normalized = String(value || '').trim()
+  if (!normalized || /^[—–-]+$/.test(normalized)) return 0
+  return asInteger(normalized)
+}
+
+function appendPdfNote(row, note) {
+  const value = String(note || '').trim()
+  if (!value || /^[—–-]+$/.test(value)) return
+  row.notes = [row.notes, value].filter(Boolean).join(' | ')
+}
+
 function rowFromPdfValues(values, sourceRow) {
+  const parsedQuantity = parsePdfQuantity(values.quantity)
   return {
     sourceRow,
     item_name: String(values.item_name || '').trim(),
     item_code: String(values.item_code || '').trim(),
     category: String(values.category || '').trim(),
-    quantity: asInteger(values.quantity),
-    damaged_quantity: values.damaged_quantity ? asInteger(values.damaged_quantity) : 0,
-    missing_quantity: values.missing_quantity ? asInteger(values.missing_quantity) : 0,
+    quantity: parsedQuantity.quantity,
+    damaged_quantity: 0,
+    missing_quantity: parsePdfOptionalCount(values.missing_quantity),
     unit: String(values.unit || 'قطعة').trim() || 'قطعة',
-    notes: String(values.notes || '').trim()
+    notes: [String(values.notes || '').trim(), parsedQuantity.detail].filter(Boolean).join(' | ')
   }
 }
 
@@ -324,27 +371,58 @@ async function parsePdf(file) {
   }
 
   if (headerIndex < 0) {
-    throw new Error('استخرجت نص PDF لكن لم أتعرف على عناوين الجدول. تأكد من وجود عمود باسم «اسم الصنف» أو «الصنف»، وعمود «الكمية» أو «العدد». إذا كان الجدول ظاهرًا لكن النص متداخلًا، أرسل لنا ملف PDF نفسه لتحسين قراءته.')
+    throw new Error('لم أتعرف على عناوين جدول PDF. يدعم النظام الآن «الصنف» أو «اسم الصنف» للاسم، و«عدد» أو «الكمية» للعدد. تأكد من أن النص قابل للتحديد.')
   }
 
   const rows = []
+  let previousRow = null
   for (let index = headerIndex + 1; index < lines.length; index += 1) {
-    const cells = pdfCellsFromLine(lines[index])
-    const mapped = cells.map(cell => pdfHeaderField(cell.text))
-    if (mapped.includes('item_name') && mapped.includes('quantity')) continue
+    const line = lines[index]
+    const values = valuesFromPdfLine(line, headerColumns)
+    const itemName = String(values.item_name || '').trim()
+    const quantityText = String(values.quantity || '').trim()
+    const noteText = String(values.notes || '').trim()
 
-    const values = valuesFromPdfLine(lines[index], headerColumns)
-    if (!values.item_name && !values.quantity) continue
+    if (itemName && quantityText) {
+      const row = rowFromPdfValues(values, 'PDF-' + line.page + '-' + (index - headerIndex))
+      rows.push(row)
+      previousRow = row
+      continue
+    }
 
-    rows.push(rowFromPdfValues(values, 'PDF-' + lines[index].page + '-' + (index - headerIndex)))
+    // Wrapped item names (e.g. "Pengpong" / "raket") continue the preceding row.
+    if (itemName && !quantityText && previousRow) {
+      previousRow.item_name = [previousRow.item_name, itemName].filter(Boolean).join(' ')
+      appendPdfNote(previousRow, noteText)
+      continue
+    }
+
+    // Multi-line weight/count breakdowns (e.g. 10x1kg, 2x2kg) belong to the
+    // preceding item. Preserve each original detail in notes and add its count.
+    if (!itemName && quantityText && previousRow) {
+      const parsed = parsePdfQuantity(quantityText)
+      if (Number.isInteger(parsed.quantity) && Number.isInteger(previousRow.quantity)) {
+        previousRow.quantity += parsed.quantity
+      } else {
+        previousRow.quantity = NaN
+      }
+      appendPdfNote(previousRow, parsed.detail || ('تفصيل كمية: ' + quantityText))
+      appendPdfNote(previousRow, noteText)
+      continue
+    }
+
+    if (!itemName && !quantityText && noteText && previousRow) {
+      appendPdfNote(previousRow, noteText)
+    }
   }
 
   if (!rows.length) {
-    throw new Error('تعرفت على عناوين الجدول، لكن لم أجد صفوف بيانات تحتها. تأكد أن كل صنف وكميته في نفس صف الجدول، أو أرسل لنا ملف PDF لاختبار تنسيقه.')
+    throw new Error('تعرفت على عناوين الجدول، لكن لم أجد صفوف بيانات تحتها. تأكد أن كل صنف وعدده موجودان في الجدول.')
   }
   if (rows.length > 5000) throw new Error('الحد الأقصى للاستيراد في المرة الواحدة هو 5,000 صف.')
   return rows
 }
+
 function validateRows(rows) {
   const seenCodes = new Set()
   const seenNames = new Set()
