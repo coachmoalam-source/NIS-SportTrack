@@ -413,7 +413,8 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
     }
     setParsing(true)
     try {
-      const resolveHeader = await loadHeaderResolver()\n      const parsed = isPdf ? await parsePdf(file, resolveHeader) : isWord ? await parseWordDocument(file, resolveHeader) : await parseWorkbook(file, resolveHeader)
+      const resolveHeader = await loadHeaderResolver()
+      const parsed = isPdf ? await parsePdf(file, resolveHeader) : isWord ? await parseWordDocument(file, resolveHeader) : await parseWorkbook(file, resolveHeader)
       setRows(validateRows(parsed))
     } catch (error) {
       setFileError(error.message || 'تعذر قراءة الملف.')
