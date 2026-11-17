@@ -214,6 +214,7 @@ async function parsePdf(file) {
   const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise
   let columns = null
   let headerY = null
+  let headerPageNo = null
   const rows = []
 
   for (let pageNo = 1; pageNo <= pdf.numPages; pageNo += 1) {
@@ -269,6 +270,7 @@ async function parsePdf(file) {
         continue
       }
       headerY = Math.min(...headerLines.map(line => line.y))
+      headerPageNo = pageNo
     }
 
     const boundaries = columns.slice(0, -1).map((column, index) => {
@@ -286,7 +288,7 @@ async function parsePdf(file) {
 
     for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
       const line = lines[lineIndex]
-      if (pageNo === 1 && headerY !== null && line.y >= headerY) continue
+      if (pageNo === headerPageNo && headerY !== null && line.y >= headerY) continue
 
       const cells = {}
       for (const column of columns) cells[column.field] = []
@@ -301,7 +303,8 @@ async function parsePdf(file) {
       const itemName = pdfCellText(cells.item_name)
       const quantityText = pdfCellText(cells.quantity)
       const missingText = pdfCellText(cells.missing_quantity)
-      const notes = pdfCellText(cells.notes)
+      const rawNotes = pdfCellText(cells.notes)
+      const notes = /^[—–-]+$/.test(rawNotes) ? '' : rawNotes
       const hasQuantity = quantityText && !/^[—–-]+$/.test(quantityText)
 
       if (itemName && !hasQuantity) {
