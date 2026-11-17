@@ -9,10 +9,10 @@ import { supabase } from '../lib/supabase'
 import './ExcelImport.css'
 
 const FIELD_ALIASES = {
-  item_name: ['اسم الصنف', 'اسم الاداه', 'اسم الأداة', 'الصنف', 'الأداة', 'item name', 'item', 'name', 'equipment', 'equipment name'],
+  item_name: ['اسم الصنف', 'بيان الصنف', 'اسم المعدة', 'اسم المعدات', 'اسم الاداه', 'اسم الأداة', 'الصنف', 'الأداة', 'المعدة', 'item name', 'item', 'name', 'equipment', 'equipment name'],
   item_code: ['كود الصنف', 'كود', 'الكود', 'item code', 'code', 'sku'],
   category: ['التصنيف', 'الفئة', 'نوع اللعبة', 'category', 'type'],
-  quantity: ['الكمية', 'الرصيد', 'الاجمالي', 'إجمالي الكمية', 'quantity', 'qty', 'stock', 'total'],
+  quantity: ['الكمية', 'الكمية الإجمالية', 'إجمالي الكمية', 'الرصيد', 'الرصيد الحالي', 'العدد', 'عدد القطع', 'عدد', 'الاجمالي', 'quantity', 'qty', 'stock', 'total'],
   damaged_quantity: ['التالف', 'كمية التالف', 'damaged', 'damaged quantity'],
   missing_quantity: ['المفقود', 'كمية المفقود', 'missing', 'missing quantity'],
   unit: ['الوحدة', 'وحدة القياس', 'unit', 'uom'],
@@ -41,7 +41,11 @@ const cellText = cell => {
 
 const asInteger = value => {
   if (value === '' || value === null || value === undefined) return null
-  const normalized = String(value).replace(/,/g, '').trim()
+  const normalized = String(value)
+    .replace(/[٠-٩]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+    .replace(/[۰-۹]/g, digit => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
+    .replace(/[٬,]/g, '')
+    .trim()
   if (!/^\d+$/.test(normalized)) return NaN
   return Number(normalized)
 }
@@ -149,62 +153,198 @@ async function parseWordDocument(file) {
   return rows
 }
 
+function pdfLineGroups(items, pageNo) {
+  const positioned = items
+    .filter(item => item.str && item.str.trim())
+    .map(item => {
+      const x = Number(item.transform?.[4] || 0)
+      const y = Number(item.transform?.[5] || 0)
+      const width = Number(item.width || 0)
+      const left = Math.min(x, x + width)
+      const right = Math.max(x, x + width)
+      return {
+        x,
+        y,
+        left,
+        right,
+        center: (left + right) / 2,
+        text: item.str.trim(),
+        dir: item.dir || 'ltr',
+        height: Number(item.height || Math.abs(item.transform?.[3] || 0))
+      }
+    })
+    .sort((a, b) => b.y - a.y || a.left - b.left)
+
+  const lines = []
+  for (const item of positioned) {
+    let line = lines.find(candidate => Math.abs(candidate.y - item.y) <= 2.5)
+    if (!line) {
+      line = { page: pageNo, y: item.y, items: [] }
+      lines.push(line)
+    }
+    line.items.push(item)
+    line.y = line.items.reduce((sum, part) => sum + part.y, 0) / line.items.length
+  }
+
+  return lines
+    .sort((a, b) => b.y - a.y)
+    .map(line => ({
+      ...line,
+      items: line.items.sort((a, b) => a.left - b.left),
+      text: line.items.map(item => item.text).join(' ').trim()
+    }))
+}
+
+function pdfHeaderField(value) {
+  const normalized = normalizeHeader(value)
+  if (HEADER_LOOKUP[normalized]) return HEADER_LOOKUP[normalized]
+  const compact = normalized.replace(/\s/g, '')
+  const aliases = Object.entries(FIELD_ALIASES)
+    .flatMap(([field, values]) => values.map(alias => ({ field, alias: normalizeHeader(alias) })))
+    .filter(entry => entry.alias.length >= 3)
+    .sort((a, b) => b.alias.length - a.alias.length)
+  const match = aliases.find(entry =>
+    normalized.includes(entry.alias) || compact.includes(entry.alias.replace(/\s/g, ''))
+  )
+  return match?.field || null
+}
+
+function pdfCellsFromLine(line) {
+  if (!line.items.length) return []
+  const heights = line.items.map(item => item.height).filter(value => value > 0).sort((a, b) => a - b)
+  const medianHeight = heights.length ? heights[Math.floor(heights.length / 2)] : 10
+  const gapLimit = Math.max(6, medianHeight * 0.9)
+  const clusters = []
+
+  for (const item of line.items) {
+    const current = clusters[clusters.length - 1]
+    const gap = current ? item.left - current.right : Infinity
+    if (!current || gap > gapLimit) {
+      clusters.push({ left: item.left, right: item.right, items: [item] })
+    } else {
+      current.items.push(item)
+      current.right = Math.max(current.right, item.right)
+    }
+  }
+
+  return clusters.map(cluster => {
+    const rtlCount = cluster.items.filter(item => item.dir === 'rtl').length
+    const rtl = rtlCount > cluster.items.length / 2
+    const parts = [...cluster.items].sort((a, b) =>
+      rtl ? b.center - a.center : a.center - b.center
+    )
+    return {
+      left: cluster.left,
+      right: cluster.right,
+      center: (cluster.left + cluster.right) / 2,
+      rtl,
+      text: parts.map(item => item.text).join(' ').trim()
+    }
+  })
+}
+
+function valuesFromPdfLine(line, columns) {
+  const values = {}
+  const usableColumns = columns.filter(column => column.field)
+  if (!usableColumns.length) return values
+
+  // Use the actual horizontal positions of the header cells. This avoids relying
+  // on PDF text extraction order, which often differs for right-to-left tables.
+  const allCenters = columns.map(column => column.center)
+  for (const column of columns) {
+    if (column.field) values[column.field] = ''
+  }
+
+  const grouped = new Map(columns.map((_, index) => [index, []]))
+  for (const item of line.items) {
+    let nearestIndex = 0
+    let nearestDistance = Infinity
+    allCenters.forEach((center, index) => {
+      const distance = Math.abs(item.center - center)
+      if (distance < nearestDistance) {
+        nearestDistance = distance
+        nearestIndex = index
+      }
+    })
+    grouped.get(nearestIndex).push(item)
+  }
+
+  columns.forEach((column, index) => {
+    if (!column.field) return
+    const parts = grouped.get(index) || []
+    const rtlCount = parts.filter(item => item.dir === 'rtl').length
+    const rtl = rtlCount > parts.length / 2
+    parts.sort((a, b) => rtl ? b.center - a.center : a.center - b.center)
+    values[column.field] = parts.map(item => item.text).join(' ').trim()
+  })
+
+  return values
+}
+
+function rowFromPdfValues(values, sourceRow) {
+  return {
+    sourceRow,
+    item_name: String(values.item_name || '').trim(),
+    item_code: String(values.item_code || '').trim(),
+    category: String(values.category || '').trim(),
+    quantity: asInteger(values.quantity),
+    damaged_quantity: values.damaged_quantity ? asInteger(values.damaged_quantity) : 0,
+    missing_quantity: values.missing_quantity ? asInteger(values.missing_quantity) : 0,
+    unit: String(values.unit || 'قطعة').trim() || 'قطعة',
+    notes: String(values.notes || '').trim()
+  }
+}
+
 async function parsePdf(file) {
   const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise
   const lines = []
   for (let pageNo = 1; pageNo <= pdf.numPages; pageNo += 1) {
     const page = await pdf.getPage(pageNo)
     const content = await page.getTextContent()
-    const grouped = new Map()
-    for (const item of content.items) {
-      if (!item.str || !item.str.trim()) continue
-      const y = Math.round(item.transform[5] / 3) * 3
-      if (!grouped.has(y)) grouped.set(y, [])
-      grouped.get(y).push({ x: item.transform[4], text: item.str.trim() })
-    }
-    for (const [y, parts] of [...grouped.entries()].sort((a,b) => b[0]-a[0])) {
-      const ordered = parts.sort((a,b) => a.x-b.x)
-      const text = ordered.map(part => part.text).join('  ').trim()
-      if (text) lines.push({ page: pageNo, text })
-    }
+    lines.push(...pdfLineGroups(content.items, pageNo))
   }
-  if (!lines.length) throw new Error('لم أتمكن من استخراج نص من ملف PDF. قد يكون الملف ممسوحًا ضوئيًا كصورة ويحتاج OCR.')
-  const split = text => text.split(/\s{2,}|\t|\s*\|\s*/).map(v => v.trim()).filter(Boolean)
+
+  if (!lines.length) {
+    throw new Error('لم أتمكن من استخراج نص من ملف PDF. قد يكون الملف ممسوحًا ضوئيًا كصورة ويحتاج إلى OCR، أو جرّب تصديره من المصدر كملف Excel.')
+  }
+
   let headerIndex = -1
-  let headers = []
-  for (let i = 0; i < Math.min(lines.length, 80); i += 1) {
-    const mapped = split(lines[i].text).map(value => HEADER_LOOKUP[normalizeHeader(value)])
+  let headerColumns = []
+  for (let index = 0; index < Math.min(lines.length, 120); index += 1) {
+    const cells = pdfCellsFromLine(lines[index])
+    const mapped = cells.map(cell => pdfHeaderField(cell.text))
     if (mapped.includes('item_name') && mapped.includes('quantity')) {
-      headerIndex = i
-      headers = mapped
+      headerIndex = index
+      headerColumns = cells.map((cell, cellIndex) => ({
+        field: mapped[cellIndex],
+        center: cell.center
+      }))
       break
     }
   }
-  if (headerIndex < 0) throw new Error('لم أجد صف عناوين واضحًا داخل PDF. تأكد أن الجدول يحتوي على «اسم الصنف» و«الكمية»، وأن الأعمدة مفصولة بوضوح.')
-  const rows = []
-  for (let i = headerIndex + 1; i < lines.length; i += 1) {
-    const cells = split(lines[i].text)
-    if (cells.length < 2) continue
-    const values = {}
-    headers.forEach((field, index) => { if (field) values[field] = cells[index] || '' })
-    if (!values.item_name || values.quantity === undefined) continue
-    rows.push({
-      sourceRow: 'PDF-' + lines[i].page + '-' + (i - headerIndex),
-      item_name: String(values.item_name || '').trim(),
-      item_code: String(values.item_code || '').trim(),
-      category: String(values.category || '').trim(),
-      quantity: asInteger(values.quantity),
-      damaged_quantity: values.damaged_quantity ? asInteger(values.damaged_quantity) : 0,
-      missing_quantity: values.missing_quantity ? asInteger(values.missing_quantity) : 0,
-      unit: String(values.unit || 'قطعة').trim() || 'قطعة',
-      notes: String(values.notes || '').trim()
-    })
+
+  if (headerIndex < 0) {
+    throw new Error('استخرجت نص PDF لكن لم أتعرف على عناوين الجدول. تأكد من وجود عمود باسم «اسم الصنف» أو «الصنف»، وعمود «الكمية» أو «العدد». إذا كان الجدول ظاهرًا لكن النص متداخلًا، أرسل لنا ملف PDF نفسه لتحسين قراءته.')
   }
-  if (!rows.length) throw new Error('تم العثور على العناوين لكن لم أجد صفوف بيانات قابلة للقراءة. جرّب ملف Excel أو PDF نصيًا بتنسيق جدول واضح.')
+
+  const rows = []
+  for (let index = headerIndex + 1; index < lines.length; index += 1) {
+    const cells = pdfCellsFromLine(lines[index])
+    const mapped = cells.map(cell => pdfHeaderField(cell.text))
+    if (mapped.includes('item_name') && mapped.includes('quantity')) continue
+
+    const values = valuesFromPdfLine(lines[index], headerColumns)
+    if (!values.item_name && !values.quantity) continue
+
+    rows.push(rowFromPdfValues(values, 'PDF-' + lines[index].page + '-' + (index - headerIndex)))
+  }
+
+  if (!rows.length) {
+    throw new Error('تعرفت على عناوين الجدول، لكن لم أجد صفوف بيانات تحتها. تأكد أن كل صنف وكميته في نفس صف الجدول، أو أرسل لنا ملف PDF لاختبار تنسيقه.')
+  }
   if (rows.length > 5000) throw new Error('الحد الأقصى للاستيراد في المرة الواحدة هو 5,000 صف.')
   return rows
 }
-
 function validateRows(rows) {
   const seenCodes = new Set()
   const seenNames = new Set()
