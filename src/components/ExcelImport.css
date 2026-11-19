@@ -1,1 +1,45 @@
 .excel-import-page{display:grid;gap:18px}.excel-import-intro{display:flex;align-items:center;gap:14px;padding:20px 22px;background:var(--panel,#fff);border:1px solid var(--border,#e6eaf0);border-radius:16px}.excel-import-intro>div:nth-child(2){flex:1}.excel-import-icon{width:48px;height:48px;display:grid;place-items:center;border-radius:14px;background:#eaf3ee;color:#1d7650}.excel-import-intro h3,.excel-preview-heading h4{margin:0 0 5px;font-size:17px}.excel-import-intro p,.excel-preview-heading p{margin:0;color:var(--muted,#758094);font-size:13px}.excel-import-card{padding:22px;background:var(--panel,#fff);border:1px solid var(--border,#e6eaf0);border-radius:16px;display:grid;gap:18px}.excel-field{display:grid;gap:7px;max-width:420px;font-size:13px;font-weight:700}.excel-field select{height:44px;border:1px solid var(--border,#dce2e9);border-radius:9px;padding:0 12px;background:#fff;color:inherit}.excel-branch-fixed{display:flex;align-items:center;gap:12px;font-size:13px}.excel-branch-fixed span{color:var(--muted,#758094)}.excel-upload-zone{min-height:150px;border:2px dashed #cbd6d0;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;color:#24744f;background:#f7fbf8;cursor:pointer;text-align:center;padding:18px}.excel-upload-zone input{display:none}.excel-upload-zone strong{font-size:14px;color:#26352d}.excel-upload-zone span{font-size:12px;color:#7a8790}.excel-message{display:flex;align-items:center;gap:8px;padding:11px 13px;border-radius:9px;font-size:13px}.excel-message.error{background:#fff3f1;color:#a33d31}.excel-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.excel-summary-grid>div{padding:14px;border-radius:11px;background:#f6f8fa;display:grid;gap:6px}.excel-summary-grid span{font-size:12px;color:#788392}.excel-summary-grid strong{font-size:23px;color:#263746}.excel-summary-grid strong.good{color:#1b8056}.excel-summary-grid strong.bad{color:#b34a3e}.excel-preview-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}.excel-table-wrap{overflow:auto;border:1px solid var(--border,#e6eaf0);border-radius:10px}.excel-table-wrap table{width:100%;border-collapse:collapse;min-width:850px;font-size:12px}.excel-table-wrap th,.excel-table-wrap td{padding:11px 12px;text-align:right;border-bottom:1px solid #edf0f2;white-space:nowrap}.excel-table-wrap th{background:#f6f8fa;color:#526071;font-weight:700}.excel-table-wrap tr.invalid{background:#fff8f7}.excel-row-error{color:#a33d31;white-space:normal;display:block;max-width:240px}.excel-row-ok{color:#1b8056;font-weight:700}.excel-table-note{padding:0 12px;color:#77818d;font-size:12px}.excel-import-actions{display:flex;align-items:center;justify-content:space-between;gap:14px}.excel-import-actions>span{font-size:12px;color:#77818d}.excel-result{border-top:1px solid var(--border,#e6eaf0);padding-top:18px}.excel-result h4{display:flex;align-items:center;gap:8px;margin:0 0 12px}.excel-result-stats{display:flex;flex-wrap:wrap;gap:18px;font-size:13px}.excel-failures{margin-top:12px;padding:12px;background:#fff7f5;border-radius:9px;color:#984034;font-size:12px}.excel-failures p{margin:7px 0}.spin{animation:excel-spin 1s linear infinite}@keyframes excel-spin{to{transform:rotate(360deg)}}@media(max-width:700px){.excel-import-intro{flex-wrap:wrap}.excel-import-intro .button{width:100%;justify-content:center}.excel-summary-grid{grid-template-columns:1fr}.excel-import-actions{align-items:stretch;flex-direction:column}.excel-import-actions .button{width:100%;justify-content:center}.excel-import-card{padding:14px}}
+.excel-branch-confirm{display:grid;gap:12px;padding:16px;border:2px solid #d6b45b;border-radius:13px;background:#fffaf0}.excel-branch-confirm-title{display:grid;gap:4px}.excel-branch-confirm-title strong{font-size:15px;color:#6f5314}.excel-branch-confirm-title>span{font-size:12px;color:#7b715b}.excel-branch-bottom-field{max-width:none;width:100%}.excel-branch-bottom-field select{height:50px;border:2px solid #c49b35;font-size:15px;font-weight:700;background:#fff}.excel-branch-bottom-fixed{padding:10px 12px;background:#fff;border-radius:9px}.excel-branch-bottom-fixed strong{font-size:15px;color:#174b38}
+
+/* High-contrast branch selector: override inherited/disabled theme colors */
+.excel-branch-confirm{background:#102747!important;border:3px solid #e5b83f!important;box-shadow:0 5px 18px rgba(8,25,48,.18)!important;opacity:1!important}
+.excel-branch-confirm-title strong{display:block!important;color:#fff!important;font-size:18px!important;font-weight:800!important;line-height:1.5!important}
+.excel-branch-confirm-title>span{display:block!important;color:#e5edf8!important;font-size:14px!important;font-weight:600!important;line-height:1.7!important}
+.excel-branch-bottom-field{display:grid!important;gap:10px!important;opacity:1!important}
+.excel-branch-bottom-field .excel-branch-select-label,.excel-branch-bottom-field>span{display:block!important;color:#ffe08a!important;font-size:16px!important;font-weight:800!important;opacity:1!important}
+.excel-branch-bottom-field select{display:block!important;width:100%!important;min-height:60px!important;height:60px!important;padding:0 16px!important;border:3px solid #e5b83f!important;border-radius:12px!important;background:#fff!important;color:#102747!important;font-size:17px!important;font-weight:800!important;opacity:1!important;visibility:visible!important;box-shadow:0 2px 0 rgba(0,0,0,.08)!important}
+.excel-branch-bottom-field select:focus{outline:3px solid rgba(255,224,138,.55)!important;outline-offset:2px!important}
+.excel-branch-bottom-field select option{background:#fff!important;color:#102747!important;font-size:16px!important;font-weight:700!important}
+.excel-branch-bottom-fixed{background:#fff!important;border:2px solid #e5b83f!important;padding:14px!important;opacity:1!important}
+.excel-branch-bottom-fixed span{color:#42536b!important;font-weight:700!important}
+.excel-branch-bottom-fixed strong{color:#102747!important;font-size:17px!important;font-weight:800!important}
+
+
+/* High-contrast branch selector labels on both sides of the import preview */
+.excel-import-card > .excel-field,
+.excel-import-card > .excel-field > span,
+.excel-import-card > .excel-branch-fixed,
+.excel-branch-confirm,
+.excel-branch-confirm-title,
+.excel-branch-confirm-title strong,
+.excel-branch-confirm-title > span,
+.excel-branch-bottom-field,
+.excel-branch-bottom-field > span,
+.excel-branch-bottom-field .excel-branch-select-label,
+.excel-branch-bottom-fixed,
+.excel-branch-bottom-fixed span,
+.excel-branch-bottom-fixed strong {
+  color: #111111 !important;
+  opacity: 1 !important;
+}
+.excel-import-card > .excel-field select,
+.excel-branch-bottom-field select,
+.excel-branch-bottom-field select option {
+  color: #111111 !important;
+  background-color: #ffffff !important;
+  opacity: 1 !important;
+}
+.excel-branch-confirm-title strong { font-size: 17px !important; font-weight: 800 !important; }
+.excel-branch-confirm-title > span { font-size: 14px !important; font-weight: 600 !important; }
+.excel-branch-bottom-field > span,
+.excel-import-card > .excel-field > span { font-size: 16px !important; font-weight: 800 !important; }

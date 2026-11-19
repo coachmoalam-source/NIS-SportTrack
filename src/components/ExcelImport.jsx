@@ -55,9 +55,10 @@ const cellText = cell => {
 
 const asInteger = value => {
   if (value === '' || value === null || value === undefined) return null
-  const normalized = String(value).replace(/,/g, '').trim()
+  const normalized = normalizeDigits(value).replace(/[٬,\s]/g, '').trim()
   if (!/^\d+$/.test(normalized)) return NaN
-  return Number(normalized)
+  const parsed = Number(normalized)
+  return Number.isSafeInteger(parsed) ? parsed : NaN
 }
 
 const slugCode = value => String(value || '').toUpperCase().replace(/[^A-Z0-9]+/g, '').slice(0, 3) || 'BR'
@@ -90,16 +91,18 @@ async function parseWorkbook(file, resolveHeader) {
       if (!field) return
       const rawHeader = String(source.getCell(index + 1).value || '').trim()
       const value = cellText(source.getCell(index + 1))
-      if (normalizeHeader(rawHeader) === 'used') values.used_tools = value
-      else values[field] = value
+      values[field] = value
     })
     if (!Object.values(values).some(value => String(value || '').trim())) continue
     rows.push({
       sourceRow: rowNumber,
+      conditionBreakdownProvided: header.headers.some(field => ['new_quantity', 'used_quantity', 'damaged_quantity'].includes(field)),
       item_name: String(values.item_name || '').trim(),
       item_code: String(values.item_code || '').trim(),
       category: String(values.category || '').trim(),
       quantity: asInteger(values.quantity),
+      new_quantity: values.new_quantity === undefined || values.new_quantity === '' ? 0 : asInteger(values.new_quantity),
+      used_quantity: values.used_quantity === undefined || values.used_quantity === '' ? 0 : asInteger(values.used_quantity),
       damaged_quantity: values.damaged_quantity ? asInteger(values.damaged_quantity) : 0,
       missing_quantity: values.missing_quantity ? asInteger(values.missing_quantity) : 0,
       unit: String(values.unit || 'قطعة').trim() || 'قطعة',
@@ -149,16 +152,18 @@ async function parseWordDocument(file, resolveHeader) {
         if (!field) return
         const rawHeader = matrix[headerIndex][columnIndex] || ''
         const value = matrix[index][columnIndex] || ''
-        if (normalizeHeader(rawHeader) === 'used') values.used_tools = value
-        else values[field] = value
+        values[field] = value
       })
       if (!Object.values(values).some(value => String(value || '').trim())) continue
       rows.push({
         sourceRow: 'WORD-' + tableNumber + '-' + (index + 1),
+        conditionBreakdownProvided: headers.some(field => ['new_quantity', 'used_quantity', 'damaged_quantity'].includes(field)),
         item_name: String(values.item_name || '').trim(),
         item_code: String(values.item_code || '').trim(),
         category: String(values.category || '').trim(),
         quantity: asInteger(values.quantity),
+        new_quantity: values.new_quantity === undefined || values.new_quantity === '' ? 0 : asInteger(values.new_quantity),
+        used_quantity: values.used_quantity === undefined || values.used_quantity === '' ? 0 : asInteger(values.used_quantity),
         damaged_quantity: values.damaged_quantity ? asInteger(values.damaged_quantity) : 0,
         missing_quantity: values.missing_quantity ? asInteger(values.missing_quantity) : 0,
         unit: String(values.unit || 'قطعة').trim() || 'قطعة',
@@ -246,7 +251,7 @@ async function parsePdf(file, resolveHeader) {
       if (!item.str || !item.str.trim()) continue
       const y = Math.round(item.transform[5] / 3) * 3
       if (!grouped.has(y)) grouped.set(y, [])
-      grouped.get(y).push({ x: item.transform[4], text: item.str.trim() })
+      grouped.get(y).push({ x: item.transform[4], width: item.width || 0, text: item.str.trim() })
     }
 
     for (const [y, parts] of [...grouped.entries()].sort((a, b) => b[0] - a[0])) {
@@ -264,13 +269,28 @@ async function parsePdf(file, resolveHeader) {
   let headerAnchors = []
 
   for (let i = 0; i < Math.min(lines.length, 100); i += 1) {
-    const mapped = lines[i].parts.map(part => resolveHeader(part.text))
+    const headerParts = lines[i].parts.flatMap(part => {
+      const directField = resolveHeader(part.text)
+      if (directField) return [{ x: part.x + (part.width || 0) / 2, field: directField, label: part.text }]
+      // Some PDFs expose an entire table header as one text object (e.g. "Tools Number New Used Damage").
+      // Split that object into individual header labels and estimate each label's horizontal position.
+      const matches = [...String(part.text).matchAll(/\S+/g)]
+      const usableWidth = part.width || String(part.text).length * 5
+      return matches.map(match => {
+        const token = match[0]
+        const field = resolveHeader(token)
+        if (!field) return null
+        const center = (match.index + token.length / 2) / Math.max(1, String(part.text).length)
+        return { x: part.x + usableWidth * center, field, label: token }
+      }).filter(Boolean)
+    })
+    const mapped = headerParts.map(part => part.field)
     if (mapped.includes('item_name') && mapped.includes('quantity')) {
       headerIndex = i
-      headerAnchors = lines[i].parts.map(part => ({
+      headerAnchors = headerParts.map(part => ({
         xRatio: part.x / lines[i].pageWidth,
-        label: part.text,
-        field: normalizeHeader(part.text) === 'used' ? 'used_tools' : (resolveHeader(part.text) || null)
+        label: part.label,
+        field: part.field
       }))
       break
     }
@@ -312,7 +332,7 @@ async function parsePdf(file, resolveHeader) {
       }
     } else {
       const parts = split(line.text)
-      const mappedFields = ['item_name', 'quantity', 'missing_quantity', 'damaged_quantity', 'notes']
+      const mappedFields = ['item_name', 'quantity', 'new_quantity', 'used_quantity', 'damaged_quantity', 'missing_quantity', 'notes']
       mappedFields.forEach((field, index) => {
         if (parts[index]) cells[field] = parts[index]
       })
@@ -321,8 +341,7 @@ async function parsePdf(file, resolveHeader) {
     let itemName = String(cells.item_name || '').trim()
     const quantityRaw = String(cells.quantity || '').trim()
     const notesRaw = String(cells.notes || '').trim()
-    const usedToolsRaw = String(cells.used_tools || '').trim()
-    if (!itemName && !quantityRaw && !notesRaw && !usedToolsRaw) continue
+    if (!itemName && !quantityRaw && !notesRaw) continue
 
     if (itemName && !quantityRaw) {
       pendingItemName = (pendingItemName + ' ' + itemName).trim()
@@ -351,18 +370,22 @@ async function parsePdf(file, resolveHeader) {
 
     const rowNotes = []
     if (notesRaw) rowNotes.push(notesRaw)
-    if (usedToolsRaw) rowNotes.push('الأدوات المستخدمة: ' + usedToolsRaw)
     if (parsedQuantity?.ratio) {
       rowNotes.push('العدد في الملف: ' + parsedQuantity.source + '؛ المفقود المحسوب من النسبة: ' + parsedQuantity.inferredMissing)
     }
 
     rows.push({
       sourceRow: 'PDF-' + line.page + '-' + (i - headerIndex),
+      conditionBreakdownProvided: headerAnchors.length > 0
+        ? headerAnchors.some(anchor => ['new_quantity', 'used_quantity', 'damaged_quantity'].includes(anchor.field))
+        : ['new_quantity', 'used_quantity', 'damaged_quantity'].some(field => cells[field] !== undefined),
       item_name: itemName,
       item_code: String(cells.item_code || '').trim(),
       category: String(cells.category || '').trim(),
       quantity: parsedQuantity?.quantity ?? null,
-      damaged_quantity: 0,
+      new_quantity: parsePdfCount(cells.new_quantity) ?? 0,
+      used_quantity: parsePdfCount(cells.used_quantity) ?? 0,
+      damaged_quantity: parsePdfCount(cells.damaged_quantity) ?? 0,
       missing_quantity: missingQuantity,
       unit: String(cells.unit || 'قطعة').trim() || 'قطعة',
       notes: rowNotes.join(' | ')
@@ -383,6 +406,8 @@ function validateRows(rows) {
     const errors = []
     if (!row.item_name) errors.push('اسم الصنف مطلوب')
     if (row.quantity === null || !Number.isInteger(row.quantity) || row.quantity < 0) errors.push('الكمية يجب أن تكون رقماً صحيحاً غير سالب')
+    if (!Number.isInteger(row.new_quantity) || row.new_quantity < 0) errors.push('قيمة الجديد غير صحيحة')
+    if (!Number.isInteger(row.used_quantity) || row.used_quantity < 0) errors.push('قيمة المستعمل غير صحيحة')
     if (!Number.isInteger(row.damaged_quantity) || row.damaged_quantity < 0) errors.push('قيمة التالف غير صحيحة')
     if (!Number.isInteger(row.missing_quantity) || row.missing_quantity < 0) errors.push('قيمة المفقود غير صحيحة')
     if (Number.isInteger(row.quantity) && row.damaged_quantity + row.missing_quantity > row.quantity) errors.push('التالف والمفقود أكبر من الكمية الإجمالية')
@@ -391,6 +416,10 @@ function validateRows(rows) {
     if (!row.item_code && row.item_name && seenNames.has(duplicateKey)) errors.push('اسم مكرر داخل الملف بدون كود')
     if (row.item_code) seenCodes.add(duplicateKey)
     else if (row.item_name) seenNames.add(duplicateKey)
+    const conditionTotal = row.new_quantity + row.used_quantity + row.damaged_quantity
+    if (row.conditionBreakdownProvided && Number.isInteger(row.quantity) && conditionTotal !== row.quantity) {
+      errors.push('مجموع الجديد والمستعمل والتالف (' + conditionTotal + ') لا يساوي الإجمالي (' + row.quantity + ')')
+    }
     return { ...row, errors }
   })
 }
@@ -451,7 +480,9 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
       { header: 'اسم الصنف', key: 'item_name', width: 28 },
       { header: 'كود الصنف', key: 'item_code', width: 18 },
       { header: 'التصنيف', key: 'category', width: 20 },
-      { header: 'الكمية', key: 'quantity', width: 14 },
+      { header: 'الكمية الإجمالية', key: 'quantity', width: 16 },
+      { header: 'الجديد', key: 'new_quantity', width: 14 },
+      { header: 'المستعمل', key: 'used_quantity', width: 14 },
       { header: 'التالف', key: 'damaged_quantity', width: 14 },
       { header: 'المفقود', key: 'missing_quantity', width: 14 },
       { header: 'الوحدة', key: 'unit', width: 14 },
@@ -566,7 +597,7 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
         }
 
         const { data: oldStock, error: stockReadError } = await supabase
-          .from('inventory').select('id, quantity, damaged_quantity, missing_quantity')
+          .from('inventory').select('id, quantity, new_quantity, used_quantity, damaged_quantity, missing_quantity')
           .eq('branch_id', targetBranchId).eq('equipment_id', equipment.id).maybeSingle()
         if (stockReadError) throw stockReadError
 
@@ -574,6 +605,8 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
           branch_id: targetBranchId,
           equipment_id: equipment.id,
           quantity: row.quantity,
+          new_quantity: row.new_quantity,
+          used_quantity: row.used_quantity,
           damaged_quantity: row.damaged_quantity,
           missing_quantity: row.missing_quantity,
           notes: row.notes || null
@@ -586,6 +619,8 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
             .from('inventory')
             .update({
               quantity: stockPayload.quantity,
+              new_quantity: stockPayload.new_quantity,
+              used_quantity: stockPayload.used_quantity,
               damaged_quantity: stockPayload.damaged_quantity,
               missing_quantity: stockPayload.missing_quantity,
               notes: stockPayload.notes,
@@ -603,13 +638,15 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
 
         const changed = !oldStock ||
           Number(oldStock.quantity) !== row.quantity ||
+          Number(oldStock.new_quantity || 0) !== row.new_quantity ||
+          Number(oldStock.used_quantity || 0) !== row.used_quantity ||
           Number(oldStock.damaged_quantity) !== row.damaged_quantity ||
           Number(oldStock.missing_quantity) !== row.missing_quantity
         if (changed) {
           if (oldStock) updated += 1
           else created += 1
           const movementQuantity = oldStock
-            ? Math.max(1, Math.abs(row.quantity - Number(oldStock.quantity)), Math.abs(row.damaged_quantity - Number(oldStock.damaged_quantity)), Math.abs(row.missing_quantity - Number(oldStock.missing_quantity)))
+            ? Math.max(1, Math.abs(row.quantity - Number(oldStock.quantity)), Math.abs(row.new_quantity - Number(oldStock.new_quantity || 0)), Math.abs(row.used_quantity - Number(oldStock.used_quantity || 0)), Math.abs(row.damaged_quantity - Number(oldStock.damaged_quantity)), Math.abs(row.missing_quantity - Number(oldStock.missing_quantity)))
             : row.quantity
           if (movementQuantity > 0) {
             const { error: movementError } = await supabase.from('inventory_movements').insert({
@@ -617,7 +654,7 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
               equipment_id: equipment.id,
               movement_type: oldStock ? 'adjustment' : 'addition',
               quantity: movementQuantity,
-              notes: 'استيراد ملف - رصيد جديد: ' + row.quantity + '، تالف: ' + row.damaged_quantity + '، مفقود: ' + row.missing_quantity,
+              notes: 'استيراد ملف - إجمالي: ' + row.quantity + '، جديد: ' + row.new_quantity + '، مستعمل: ' + row.used_quantity + '، تالف: ' + row.damaged_quantity + '، مفقود: ' + row.missing_quantity,
               created_by: profile.id
             })
             if (movementError) movementWarnings += 1
@@ -655,7 +692,7 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
       <div className="excel-import-card">
         {isCentral ? (
           <label className="excel-field">
-            <span>الفرع المستهدف</span>
+            <span>1. اختر الفرع المستهدف قبل رفع الملف</span>
             <select value={branchId} onChange={event => setBranchId(event.target.value)}>
               <option value="">اختر الفرع</option>
               {branches.map(branch => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
@@ -685,18 +722,35 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
             <div className="excel-preview-heading"><div><h4>معاينة البيانات</h4><p>يتم استيراد الصفوف السليمة فقط.</p></div><button className="button button-light" type="button" onClick={reset}>إلغاء الملف</button></div>
             <div className="excel-table-wrap">
               <table>
-                <thead><tr><th>صف المصدر</th><th>اسم الصنف</th><th>الكود</th><th>التصنيف</th><th>الكمية</th><th>التالف</th><th>المفقود</th><th>النتيجة</th></tr></thead>
+                <thead><tr><th>صف المصدر</th><th>اسم الصنف</th><th>الكود</th><th>التصنيف</th><th>الإجمالي</th><th>الجديد</th><th>المستعمل</th><th>التالف</th><th>المفقود</th><th>النتيجة</th></tr></thead>
                 <tbody>
                   {rows.slice(0, 150).map(row => (
                     <tr key={row.sourceRow} className={row.errors.length ? 'invalid' : ''}>
                       <td>{row.sourceRow}</td><td>{row.item_name || '—'}</td><td>{row.item_code || 'تلقائي'}</td><td>{row.category || '—'}</td>
-                      <td>{Number.isInteger(row.quantity) ? row.quantity : '—'}</td><td>{row.damaged_quantity}</td><td>{row.missing_quantity}</td>
+                      <td>{Number.isInteger(row.quantity) ? row.quantity : '—'}</td><td>{row.new_quantity}</td><td>{row.used_quantity}</td><td>{row.damaged_quantity}</td><td>{row.missing_quantity}</td>
                       <td>{row.errors.length ? <span className="excel-row-error">{row.errors.join('، ')}</span> : <span className="excel-row-ok">سليم</span>}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               {rows.length > 150 && <p className="excel-table-note">المعاينة تعرض أول 150 صفاً فقط، وسيتم فحص واستيراد جميع الصفوف السليمة.</p>}
+            </div>
+            <div className="excel-branch-confirm">
+              <div className="excel-branch-confirm-title">
+                <strong>⚑ اختيار الفرع — خطوة إلزامية</strong>
+                <span>حدد الفرع الذي ستُحفظ فيه الأصناف قبل الضغط على اعتماد الاستيراد.</span>
+              </div>
+              {isCentral ? (
+                <label className="excel-field excel-branch-bottom-field">
+                  <span className="excel-branch-select-label">اختر الفرع المستهدف</span>
+                  <select value={branchId} onChange={event => setBranchId(event.target.value)}>
+                    <option value="">▼ اضغط هنا لاختيار الفرع</option>
+                    {branches.map(branch => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+                  </select>
+                </label>
+              ) : (
+                <div className="excel-branch-fixed excel-branch-bottom-fixed"><span>فرع حسابك</span><strong>{selectedBranch?.name || 'لم يتم تحديد فرع للحساب'}</strong></div>
+              )}
             </div>
             <div className="excel-import-actions">
               <span>تأكد من اختيار الفرع الصحيح قبل الاعتماد.</span>
