@@ -614,15 +614,15 @@ function App() {
         <div className="brand"><div className="brand-mark"><Boxes size={25}/></div><div><strong>NIS SportTrack</strong><small>PE Inventory Management</small></div></div>
         <div className="side-label">{t('القائمة الرئيسية','MAIN MENU')}</div>
         <button className={activeSection === 'inventory' ? 'nav-item active' : 'nav-item'} onClick={() => { setActiveSection('inventory'); setMobileNavOpen(false) }}><ClipboardList size={18}/> {t('إدارة المخزون','Inventory')}</button>
-        {canManage && <button className={activeSection === 'excel-import' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('excel-import'); setMobileNavOpen(false) }}><ArrowDownToLine size={18}/> رفع الملفات</button>}
+        {canManage && <button className={activeSection === 'excel-import' ? 'nav-item active' : 'nav-item'} onClick={() => { setActiveSection('excel-import'); setMobileNavOpen(false) }}><ArrowDownToLine size={18}/> رفع الملفات</button>}
         <button className="nav-item" onClick={() => { exportInventoryCsv(); setMobileNavOpen(false) }}><Download size={18}/> تصدير المخزون (CSV)</button>
-        <button className={activeSection === 'audits' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('audits'); setMobileNavOpen(false) }}><Activity size={18}/> {t('الجرد الدوري','Periodic Audits')}</button>
-        <button className={activeSection === 'services' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('services'); setMobileNavOpen(false) }}><Wrench size={18}/> {t('الصيانة والتالف','Maintenance & Damage')}</button>
+        <button className={activeSection === 'audits' ? 'nav-item active' : 'nav-item'} onClick={() => { setActiveSection('audits'); setMobileNavOpen(false) }}><Activity size={18}/> {t('الجرد الدوري','Periodic Audits')}</button>
+        <button className={activeSection === 'services' ? 'nav-item active' : 'nav-item'} onClick={() => { setActiveSection('services'); setMobileNavOpen(false) }}><Wrench size={18}/> {t('الصيانة والتالف','Maintenance & Damage')}</button>
         {canViewAllBranches && <>
-          <button className={activeSection === 'comparison' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('comparison'); setMobileNavOpen(false) }}><Building2 size={18}/> {t('مقارنة الفروع','Branch Comparison')}</button>
-          <button className={activeSection === 'reports' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('reports'); setMobileNavOpen(false) }}><ClipboardList size={18}/> {t('تقارير الفروع','Branch Reports')}</button>
+          <button className={activeSection === 'comparison' ? 'nav-item active' : 'nav-item'} onClick={() => { setActiveSection('comparison'); setMobileNavOpen(false) }}><Building2 size={18}/> {t('مقارنة الفروع','Branch Comparison')}</button>
+          <button className={activeSection === 'reports' ? 'nav-item active' : 'nav-item'} onClick={() => { setActiveSection('reports'); setMobileNavOpen(false) }}><ClipboardList size={18}/> {t('تقارير الفروع','Branch Reports')}</button>
         </>}
-        <button className={activeSection === 'settings' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveSection('settings'); setMobileNavOpen(false) }}><ShieldCheck size={18}/> {t('الإعدادات','Settings')}</button>
+        <button className={activeSection === 'settings' ? 'nav-item active' : 'nav-item'} onClick={() => { setActiveSection('settings'); setMobileNavOpen(false) }}><ShieldCheck size={18}/> {t('الإعدادات','Settings')}</button>
         <button className={activeSection === 'branches' ? 'nav-item active' : 'nav-item'} onClick={() => { setActiveSection('inventory'); setMobileNavOpen(false); setBranchFilter('all'); setPage(0); setInventoryFocus('all'); loadData(session, 0, 'all') }}><Building2 size={18}/> الفروع</button>
         <div className="sidebar-bottom"><ShieldCheck size={17}/><span>{t('نظام متابعة مركزي للفروع','Central Branch Management')}</span></div>
       </aside>
