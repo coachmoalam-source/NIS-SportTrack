@@ -1084,3 +1084,39 @@ button{transition:transform .18s ease,box-shadow .18s ease,background .18s ease,
   .app-shell .sidebar .nav-item{font-size:9px!important;padding:7px 8px!important}
   .app-shell .stat-card:last-child{max-width:calc(50% - 4px)!important}
 }
+
+
+/* Compact navigation breakpoint also covers mobile browsers requesting desktop layout */
+@media (max-width: 1024px) {
+  .app-shell { display:flex!important; flex-direction:column!important; width:100%; max-width:100%; overflow-x:hidden; }
+  .app-shell > .sidebar {
+    order:0; position:relative!important; inset:auto!important; top:auto!important;
+    width:100%!important; height:auto!important; min-height:0!important; max-height:none!important;
+    display:flex!important; flex-direction:row!important; align-items:center!important;
+    flex-wrap:nowrap!important; gap:7px!important; overflow-x:auto!important; overflow-y:hidden!important;
+    padding:10px 12px!important; margin:0!important; border:0!important;
+    border-bottom:2px solid #d5ad5c!important; box-shadow:0 7px 20px rgba(5,20,42,.12)!important;
+    scrollbar-width:thin;
+  }
+  .app-shell > .sidebar .brand { flex:0 0 auto!important; min-width:132px; padding:0 10px 0 0!important; margin:0!important; border:0!important; }
+  .app-shell > .sidebar .brand-mark { width:34px!important; height:34px!important; }
+  .app-shell > .sidebar .brand strong { font-size:11px!important; }
+  .app-shell > .sidebar .brand small,.app-shell > .sidebar .side-label,.app-shell > .sidebar .sidebar-bottom { display:none!important; }
+  .app-shell > .sidebar .nav-item {
+    flex:0 0 auto!important; display:flex!important; width:auto!important; min-width:max-content!important;
+    min-height:38px!important; margin:0!important; padding:8px 10px!important;
+    border:1px solid #2a4766!important; border-radius:10px!important;
+    background:#102c4d!important; color:#dce5ef!important; font-size:10px!important; white-space:nowrap!important;
+  }
+  .app-shell > .sidebar .nav-item.active { background:linear-gradient(110deg,#c18e36,#e4c36e)!important;color:#10233d!important;border-color:#f1d58e!important; }
+  .app-shell > .main-content { order:1; width:100%!important; max-width:100%!important; min-width:0!important; padding:15px 13px 26px!important; }
+  .app-shell .stats-grid { grid-template-columns:repeat(2,minmax(0,1fr))!important; }
+  .app-shell .branch-shortcuts-grid { grid-template-columns:repeat(2,minmax(0,1fr))!important; }
+  .app-shell .sport-category-grid { grid-template-columns:repeat(2,minmax(0,1fr))!important; }
+  .app-shell .stat-card:last-child { grid-column:auto!important; max-width:none!important; }
+}
+@media (max-width: 420px) {
+  .app-shell > .sidebar .brand { min-width:112px!important; }
+  .app-shell > .sidebar .nav-item { font-size:9px!important; padding:7px 8px!important; }
+  .app-shell > .main-content { padding-inline:9px!important; }
+}
