@@ -692,7 +692,7 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
       <div className="excel-import-card">
         {isCentral ? (
           <label className="excel-field">
-            <span>الفرع المستهدف</span>
+            <span>1. اختر الفرع المستهدف قبل رفع الملف</span>
             <select value={branchId} onChange={event => setBranchId(event.target.value)}>
               <option value="">اختر الفرع</option>
               {branches.map(branch => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
@@ -734,6 +734,23 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
                 </tbody>
               </table>
               {rows.length > 150 && <p className="excel-table-note">المعاينة تعرض أول 150 صفاً فقط، وسيتم فحص واستيراد جميع الصفوف السليمة.</p>}
+            </div>
+            <div className="excel-branch-confirm">
+              <div className="excel-branch-confirm-title">
+                <strong>الخطوة الأخيرة: راجع الفرع قبل الاعتماد</strong>
+                <span>سيتم حفظ كل الأصناف في هذا الفرع فقط.</span>
+              </div>
+              {isCentral ? (
+                <label className="excel-field excel-branch-bottom-field">
+                  <span>الفرع الذي سيتم الاستيراد إليه</span>
+                  <select value={branchId} onChange={event => setBranchId(event.target.value)}>
+                    <option value="">— اختر الفرع أولاً —</option>
+                    {branches.map(branch => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+                  </select>
+                </label>
+              ) : (
+                <div className="excel-branch-fixed excel-branch-bottom-fixed"><span>فرع حسابك</span><strong>{selectedBranch?.name || 'لم يتم تحديد فرع للحساب'}</strong></div>
+              )}
             </div>
             <div className="excel-import-actions">
               <span>تأكد من اختيار الفرع الصحيح قبل الاعتماد.</span>
