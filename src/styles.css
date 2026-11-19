@@ -372,8 +372,13 @@
   .table-wrap{overflow:visible!important}
   .inventory-data-table{width:100%!important;min-width:0!important;border-collapse:collapse!important}
   .inventory-data-table th,.inventory-data-table td{color:#111!important;background:#fff!important;border:1px solid #bbb!important;padding:7px!important;font-size:10px!important}
-  .inventory-data-table .item-cell img,.inventory-data-table .item-placeholder{display:none!important}
-  .inventory-data-table .item-cell{display:block!important}
+  .inventory-data-table .item-cell img{display:block!important;visibility:visible!important;opacity:1!important;width:48px!important;height:48px!important;min-width:48px!important;object-fit:contain!important;border:1px solid #bbb!important;border-radius:5px!important;background:#fff!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .inventory-data-table .item-placeholder{display:grid!important;width:48px!important;height:48px!important;border:1px solid #bbb!important;background:#f5f5f5!important;color:#555!important}
+  .inventory-data-table .item-cell{display:flex!important;align-items:center!important;gap:8px!important;white-space:normal!important}
+  .inventory-data-table tr{break-inside:avoid!important;page-break-inside:avoid!important}
+  .inventory-data-table .item-cell img{break-inside:avoid!important;page-break-inside:avoid!important}
+  .inventory-data-table thead{display:table-header-group!important}
+  .inventory-data-table tfoot{display:table-footer-group!important}
   .inventory-data-table small{color:#444!important}
   .table-footer{color:#111!important}
 }
