@@ -737,14 +737,14 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
             </div>
             <div className="excel-branch-confirm">
               <div className="excel-branch-confirm-title">
-                <strong>الخطوة الأخيرة: راجع الفرع قبل الاعتماد</strong>
-                <span>سيتم حفظ كل الأصناف في هذا الفرع فقط.</span>
+                <strong>⚑ اختيار الفرع — خطوة إلزامية</strong>
+                <span>حدد الفرع الذي ستُحفظ فيه الأصناف قبل الضغط على اعتماد الاستيراد.</span>
               </div>
               {isCentral ? (
                 <label className="excel-field excel-branch-bottom-field">
-                  <span>الفرع الذي سيتم الاستيراد إليه</span>
+                  <span className="excel-branch-select-label">اختر الفرع المستهدف</span>
                   <select value={branchId} onChange={event => setBranchId(event.target.value)}>
-                    <option value="">— اختر الفرع أولاً —</option>
+                    <option value="">▼ اضغط هنا لاختيار الفرع</option>
                     {branches.map(branch => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
                   </select>
                 </label>
