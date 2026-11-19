@@ -814,3 +814,77 @@ body{background:var(--nis-paper);color:var(--nis-ink)}
   .app-shell .sidebar{grid-template-columns:repeat(3,minmax(0,1fr))}
   .app-shell .stat-card:last-child{max-width:100%}
 }
+
+
+/* ===== NIS SportTrack: clear branch navigation, navy masthead, category artwork ===== */
+.app-shell .topbar{
+  position:relative;
+  margin:-30px calc(-1 * clamp(18px,3vw,44px)) 22px;
+  padding:20px clamp(18px,3vw,44px) 18px;
+  background:linear-gradient(112deg,#06152f 0%,#0b2346 58%,#17375f 100%);
+  border-bottom:3px solid #d1a34a;
+  border-radius:0 0 18px 18px;
+  box-shadow:0 10px 26px rgba(3,13,31,.22);
+}
+.app-shell .topbar h1{color:#fff!important}
+.app-shell .topbar .eyebrow{color:#f0cb76!important}
+.app-shell .topbar .user-copy strong{color:#fff!important}
+.app-shell .topbar .user-copy small{color:#c0cee0!important}
+.app-shell .topbar .avatar{background:#1c385c!important;border-color:#496487!important;color:#f2ce7d!important}
+.app-shell .topbar .icon-button{color:#e1e9f4!important}
+.app-shell .topbar .icon-button:hover{background:#ffffff18!important}
+.app-shell .branch-tabs{
+  margin:0 0 18px!important;padding:17px!important;
+  background:linear-gradient(145deg,#fff 0%,#f4f7fb 100%)!important;
+  border:1px solid #d9e2ed!important;border-top:3px solid #d2a64e!important;
+  border-radius:16px!important;box-shadow:0 8px 24px rgba(4,22,48,.09)!important;
+}
+.app-shell .branch-tabs-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px}
+.app-shell .branch-tabs-kicker{font-size:9px;font-weight:900;letter-spacing:1.6px;color:#a47b30}
+.app-shell .branch-tabs-heading h3{margin:3px 0;color:#0a2144;font-size:16px;font-weight:900}
+.app-shell .branch-tabs-heading p{margin:0;color:#77879a;font-size:10px}
+.app-shell .branch-tabs-count{flex:0 0 auto;padding:6px 10px;border-radius:20px;background:#eaf0f7;color:#23456d;font-size:10px;font-weight:800}
+.app-shell .branch-tabs-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.app-shell .branch-tab{
+  display:flex;align-items:center;justify-content:flex-start;gap:9px;
+  min-width:0;min-height:58px;padding:9px 12px;
+  border:1px solid #d7e1ed;border-radius:12px;
+  background:#fff;color:#10294c;text-align:right;
+  font-size:12px;font-weight:800;
+  transition:background .16s,border-color .16s,box-shadow .16s,transform .16s;
+}
+.app-shell .branch-tab:hover{border-color:#c89a42;box-shadow:0 5px 13px rgba(9,32,66,.08);transform:translateY(-1px)}
+.app-shell .branch-tab.active{
+  background:linear-gradient(110deg,#071b3b,#15375f)!important;
+  color:#fff!important;border:1px solid #d2a64e!important;
+  box-shadow:0 6px 15px rgba(5,24,53,.18)!important;
+}
+.app-shell .branch-tab-symbol{
+  width:36px;height:36px;flex:0 0 36px;display:grid;place-items:center;
+  border-radius:10px;background:#f8edcf;color:#a67b2e;
+}
+.app-shell .branch-tab.active .branch-tab-symbol{background:#ffffff18;color:#f0cd7b}
+.app-shell .branch-tab>span:last-child{overflow-wrap:anywhere}
+.app-shell .item-cell img.category-art-thumb{
+  width:42px!important;height:42px!important;object-fit:cover!important;
+  border-radius:10px!important;border:1px solid #3a5374!important;
+  background:#fff!important;padding:2px!important;
+}
+@media(max-width:760px){
+  .app-shell .topbar{
+    margin:-18px -12px 16px!important;
+    padding:16px 13px 14px!important;
+    border-radius:0 0 14px 14px!important;
+    align-items:center!important;
+  }
+  .app-shell .topbar h1{font-size:15px!important;line-height:1.5}
+  .app-shell .topbar .eyebrow{font-size:8px!important;letter-spacing:1.2px}
+  .app-shell .branch-tabs{padding:12px!important;margin-bottom:13px!important}
+  .app-shell .branch-tabs-heading h3{font-size:13px}
+  .app-shell .branch-tabs-heading p{font-size:9px;line-height:1.5}
+  .app-shell .branch-tabs-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .app-shell .branch-tab{min-height:53px;padding:7px 8px;gap:7px;font-size:10px}
+  .app-shell .branch-tab-symbol{width:31px;height:31px;flex-basis:31px}
+  .app-shell .item-cell img.category-art-thumb{width:38px!important;height:38px!important}
+}
+@media(max-width:360px){.app-shell .branch-tabs-list{grid-template-columns:1fr}}
