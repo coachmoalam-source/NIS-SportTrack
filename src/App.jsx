@@ -620,6 +620,28 @@ function App() {
           <div className="dashboard-hero-mark"><div className="hero-mark-ring"><Boxes size={44}/></div><strong>NIS</strong><small>SPORTTRACK</small><i>MANAGE • TRACK • EXCEL</i></div>
           <div className="dashboard-hero-glow"/>
         </section>}
+        {activeSection === 'inventory' && categories.length > 0 && <section className="sport-category-showcase">
+          <div className="sport-category-heading">
+            <div><span className="branch-shortcuts-kicker">SPORTS EQUIPMENT LIBRARY</span><h3>{t('تصفح الأدوات حسب الرياضة','Explore equipment by sport')}</h3><p>{t('اختَر التصنيف للوصول السريع إلى أدواته.','Choose a category to filter its equipment.')}</p></div>
+            <span className="category-count">{categories.length} {t('تصنيف','categories')}</span>
+          </div>
+          <div className="sport-category-grid">
+            {categories.map((category, index) => {
+              const key = String(category).toLowerCase()
+              const visual = key.includes('football') || key.includes('قدم') ? ['⚽','https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=600&q=80'] :
+                key.includes('basket') || key.includes('سلة') ? ['🏀','https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=600&q=80'] :
+                key.includes('tennis') || key.includes('تنس') ? ['🎾','https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=600&q=80'] :
+                key.includes('swim') || key.includes('سباح') ? ['🏊','https://images.unsplash.com/photo-1530549387789-4c1017266635?auto=format&fit=crop&w=600&q=80'] :
+                key.includes('volley') || key.includes('طائرة') ? ['🏐','https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?auto=format&fit=crop&w=600&q=80'] :
+                key.includes('fitness') || key.includes('لياق') || key.includes('gym') ? ['🏋️','https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=600&q=80'] :
+                ['🏅','https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=600&q=80']
+              return <button type="button" key={category} className={categoryFilter === category ? 'sport-category-card selected' : 'sport-category-card'} onClick={() => setCategoryFilter(category)} style={{'--category-image': 'url("' + visual[1] + '")'}}>
+                <span className="sport-category-overlay"/><span className="sport-category-emoji">{visual[0]}</span><strong>{category}</strong><small>{t('عرض الأدوات','View equipment')} <ChevronRight size={13}/></small>
+              </button>
+            })}
+          </div>
+          {categoryFilter !== 'all' && <button className="category-reset" type="button" onClick={() => setCategoryFilter('all')}>{t('عرض كل التصنيفات ×','Show all categories ×')}</button>}
+        </section>}
         {error && <div className="alert alert-error"><AlertTriangle size={18}/>{error}<button onClick={() => setError('')}><X size={16}/></button></div>}
         {notice && <div className="alert alert-success"><CheckCircle2 size={18}/>{notice}<button onClick={() => setNotice('')}><X size={16}/></button></div>}
 
