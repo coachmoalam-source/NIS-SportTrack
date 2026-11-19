@@ -116,7 +116,7 @@ function App() {
     setProfile(profileResult.data)
     setBranches(branchResult.data || [])
     let query = supabase.from('inventory')
-      .select('id, branch_id, quantity, damaged_quantity, missing_quantity, notes, updated_at, branches!inventory_branch_id_fkey(name), equipment!inventory_equipment_id_fkey(id, name, item_code, photo_url, unit, custom_category, categories!equipment_category_id_fkey(name))', { count: 'exact' })
+      .select('id, branch_id, quantity, damaged_quantity, missing_quantity, notes, updated_at, branches!inventory_branch_id_fkey(name), equipment!inventory_equipment_id_fkey(id, name, item_code, photo_url, unit, custom_category, branch_id, categories!equipment_category_id_fkey(name))', { count: 'exact' })
       .order('updated_at', { ascending: false })
       .range(requestedPage * PAGE_SIZE, (requestedPage + 1) * PAGE_SIZE - 1)
     const searchTerm = String(requestedSearch || '').trim().replace(/[%,]/g, ' ')
@@ -193,10 +193,10 @@ function App() {
       let displayPhoto = storedPhoto
       if (storedPhoto.startsWith('storage:')) {
         const path = storedPhoto.slice('storage:'.length)
-        const { data: signed } = await supabase.storage.from('nis-sporttrack-evidence').createSignedUrl(path, 3600)
+        const { data: signed } = await supabase.storage.from('nis-sporttrack-evidence').createSignedUrl(path, 604800)
         displayPhoto = signed?.signedUrl || ''
       }
-      return { ...row, item_name: row.equipment?.name || 'صنف غير معروف', item_code: row.equipment?.item_code || '', category: row.equipment?.categories?.name || row.equipment?.custom_category || '', image_url: displayPhoto, photo_storage_value: storedPhoto, unit: row.equipment?.unit || 'قطعة', equipment_id: row.equipment?.id }
+      return { ...row, item_name: row.equipment?.name || 'صنف غير معروف', item_code: row.equipment?.item_code || '', category: row.equipment?.categories?.name || row.equipment?.custom_category || '', image_url: displayPhoto, photo_storage_value: storedPhoto, unit: row.equipment?.unit || 'قطعة', equipment_id: row.equipment?.id, equipment_branch_id: row.equipment?.branch_id }
     }))
     setItems(mappedItems)
     setTotalRows(count || 0)
@@ -290,7 +290,7 @@ function App() {
       const batchSize = 1000
       while (true) {
         let query = supabase.from('inventory')
-          .select('id, branch_id, quantity, damaged_quantity, missing_quantity, notes, updated_at, branches!inventory_branch_id_fkey(name), equipment!inventory_equipment_id_fkey(id, name, item_code, photo_url, unit, custom_category, categories!equipment_category_id_fkey(name))')
+          .select('id, branch_id, quantity, damaged_quantity, missing_quantity, notes, updated_at, branches!inventory_branch_id_fkey(name), equipment!inventory_equipment_id_fkey(id, name, item_code, photo_url, unit, custom_category, branch_id, categories!equipment_category_id_fkey(name))')
           .order('updated_at', { ascending: false })
           .range(offset, offset + batchSize - 1)
         if (!canViewAllBranches) query = query.eq('branch_id', ownBranchId)
@@ -465,7 +465,8 @@ function App() {
     if (imageFile) {
       if (!['image/jpeg','image/png','image/webp'].includes(imageFile.type) || imageFile.size > 10 * 1024 * 1024) { setError('يرجى اختيار صورة JPG أو PNG أو WEBP بحجم لا يتجاوز 10 ميجابايت.'); setSaving(false); return }
       const extension = imageFile.type === 'image/png' ? 'png' : imageFile.type === 'image/webp' ? 'webp' : 'jpg'
-      const storagePath = 'equipment/' + crypto.randomUUID() + '.' + extension
+      const storageFolder = isCentral ? 'equipment' : `${ownBranchId}/equipment`
+      const storagePath = storageFolder + '/' + crypto.randomUUID() + '.' + extension
       const { error: uploadError } = await supabase.storage.from('nis-sporttrack-evidence').upload(storagePath, imageFile, { contentType: imageFile.type, upsert: false })
       if (uploadError) { setError('تعذر رفع الصورة: ' + uploadError.message); setSaving(false); return }
       savedPhoto = 'storage:' + storagePath
@@ -555,6 +556,13 @@ function App() {
         setError(equipmentError.message); setSaving(false); return
       }
       equipmentId = createdEquipment.id
+    }
+
+    if (!isCentral && editing && imageFile) {
+      const { error: photoError } = await supabase.from('equipment')
+        .update({ photo_url: savedPhoto.startsWith('storage:') ? savedPhoto : (form.image_url.trim() || null) })
+        .eq('id', equipmentId)
+      if (photoError) { setError('تعذر تحديث صورة الأداة: ' + photoError.message); setSaving(false); return }
     }
 
     const result = editing
@@ -732,7 +740,7 @@ function App() {
                 {loading ? <tr><td colSpan={inventoryColumnDefs.filter(col=>isColumnVisible(col.key)).length+1} className="empty-state">جاري تحميل البيانات...</td></tr> :
                   sortedFilteredItems.length === 0 ? <tr><td colSpan={inventoryColumnDefs.filter(col=>isColumnVisible(col.key)).length+1} className="empty-state"><Package size={28}/><strong>لا توجد أصناف لعرضها</strong><span>ابدأ بإضافة أول صنف إلى سجل المخزون.</span></td></tr> :
                   sortedFilteredItems.map(item => <tr key={item.id}>
-                    {isColumnVisible('item') && <td><div className="item-cell">{item.image_url ? <img src={item.image_url} alt="" onError={e => {e.currentTarget.style.display='none'}}/> : <div className="item-placeholder"><Package size={18}/></div>}<div><strong>{item.item_name}</strong><small>{item.item_code || 'بدون كود'}</small></div></div></td>}
+                    {isColumnVisible('item') && <td><div className="item-cell">{item.image_url ? <img src={item.image_url} alt="" onError={async e => { const img=e.currentTarget; const path=item.photo_storage_value?.startsWith('storage:') ? item.photo_storage_value.slice('storage:'.length) : ''; if (!path || img.dataset.retryingUrl === img.src) { img.style.display='none'; return } img.dataset.retryingUrl=img.src; const { data: refreshed, error: refreshError } = await supabase.storage.from('nis-sporttrack-evidence').createSignedUrl(path, 604800); if (refreshError || !refreshed?.signedUrl) { img.style.display='none'; return } setItems(current => current.map(row => row.id === item.id ? { ...row, image_url: refreshed.signedUrl } : row)) }}/> : <div className="item-placeholder"><Package size={18}/></div>}<div><strong>{item.item_name}</strong><small>{item.item_code || 'بدون كود'}</small></div></div></td>}
                     {canViewAllBranches && isColumnVisible('branch') && <td>{item.branches?.name || '—'}</td>}
                     {isColumnVisible('category') && <td>{item.category || '—'}</td>}
                     {isColumnVisible('quantity') && <td className="numeric">{item.quantity} {item.unit}</td>}
@@ -769,7 +777,7 @@ function App() {
           <label className="field">الكمية الإجمالية *<input type="number" min="0" required value={form.quantity} onChange={e=>setForm({...form,quantity:e.target.value})}/></label>
           <label className="field">التالف<input type="number" min="0" required value={form.damaged_quantity} onChange={e=>setForm({...form,damaged_quantity:e.target.value})}/></label>
           <label className="field">المفقود<input type="number" min="0" required value={form.missing_quantity} onChange={e=>setForm({...form,missing_quantity:e.target.value})}/></label>
-          {isCentral && <label className="field full">صورة الأداة<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => { const file=e.target.files?.[0] || null; setImageFile(file); setImagePreview(file ? URL.createObjectURL(file) : (editing?.image_url || "")) }}/><small className="field-hint">ارفع الصورة مباشرة من جهازك — JPG أو PNG أو WEBP، بحد أقصى 10 ميجابايت. لا حاجة لإدخال رابط.</small>{imagePreview && <img className="upload-preview" src={imagePreview} alt="معاينة صورة الأداة"/>}</label>}
+          {(isCentral || (!editing && canManage) || (editing && editing.equipment_branch_id === ownBranchId)) && <label className="field full">صورة الأداة<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => { const file=e.target.files?.[0] || null; setImageFile(file); setImagePreview(file ? URL.createObjectURL(file) : (editing?.image_url || "")) }}/><small className="field-hint">ارفع الصورة مباشرة من جهازك — JPG أو PNG أو WEBP، بحد أقصى 10 ميجابايت. لا حاجة لإدخال رابط.</small>{imagePreview && <img className="upload-preview" src={imagePreview} alt="معاينة صورة الأداة"/>}</label>}
           <label className="field full">ملاحظات<textarea rows="3" value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} placeholder="أي تفاصيل إضافية عن حالة الأداة..."/></label>
         </div>
         <div className="modal-actions"><button type="button" className="button button-light" onClick={()=>setModalOpen(false)}>إلغاء</button><button className="button button-primary" disabled={saving}>{saving ? 'جارٍ الحفظ...' : 'حفظ البيانات'}</button></div>
