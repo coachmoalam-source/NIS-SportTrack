@@ -248,7 +248,7 @@ async function parsePdf(file, resolveHeader) {
       if (!item.str || !item.str.trim()) continue
       const y = Math.round(item.transform[5] / 3) * 3
       if (!grouped.has(y)) grouped.set(y, [])
-      grouped.get(y).push({ x: item.transform[4], text: item.str.trim() })
+      grouped.get(y).push({ x: item.transform[4], width: item.width || 0, text: item.str.trim() })
     }
 
     for (const [y, parts] of [...grouped.entries()].sort((a, b) => b[0] - a[0])) {
@@ -266,13 +266,28 @@ async function parsePdf(file, resolveHeader) {
   let headerAnchors = []
 
   for (let i = 0; i < Math.min(lines.length, 100); i += 1) {
-    const mapped = lines[i].parts.map(part => resolveHeader(part.text))
+    const headerParts = lines[i].parts.flatMap(part => {
+      const directField = resolveHeader(part.text)
+      if (directField) return [{ x: part.x + (part.width || 0) / 2, field: directField, label: part.text }]
+      // Some PDFs expose an entire table header as one text object (e.g. "Tools Number New Used Damage").
+      // Split that object into individual header labels and estimate each label's horizontal position.
+      const matches = [...String(part.text).matchAll(/\\S+/g)]
+      const usableWidth = part.width || String(part.text).length * 5
+      return matches.map(match => {
+        const token = match[0]
+        const field = resolveHeader(token)
+        if (!field) return null
+        const center = (match.index + token.length / 2) / Math.max(1, String(part.text).length)
+        return { x: part.x + usableWidth * center, field, label: token }
+      }).filter(Boolean)
+    })
+    const mapped = headerParts.map(part => part.field)
     if (mapped.includes('item_name') && mapped.includes('quantity')) {
       headerIndex = i
-      headerAnchors = lines[i].parts.map(part => ({
+      headerAnchors = headerParts.map(part => ({
         xRatio: part.x / lines[i].pageWidth,
-        label: part.text,
-        field: resolveHeader(part.text) || null
+        label: part.label,
+        field: part.field
       }))
       break
     }
