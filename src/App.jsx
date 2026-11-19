@@ -5,6 +5,7 @@ import {
   LogOut, Package, Plus, RefreshCw, Search, ShieldCheck, Trash2, X, Download, Printer, SlidersHorizontal, ArrowUpDown, Dumbbell, Trophy, Volleyball, Waves, Target, CircleDot, Dribbble, Bike
 } from 'lucide-react'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
+import ExcelJS from 'exceljs'
 import PeriodicAudits from './components/PeriodicAudits'
 import DamageMaintenance from './components/DamageMaintenance'
 import BranchComparison from './components/BranchComparison'
@@ -343,18 +344,46 @@ function App() {
         available: Math.max(0,number(item.quantity)-number(item.damaged_quantity)-number(item.missing_quantity)),
         updated: formatDate(item.updated_at)
       }[key])
-      const escapeCsv = value => '"' + String(value ?? '').replace(/"/g,'""') + '"'
-      const csv = '\uFEFF' + [columns.map(col=>escapeCsv(col.label)).join(','), ...exportRows.map(item=>columns.map(col=>escapeCsv(valueFor(item,col.key))).join(','))].join('\r\n')
-      const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'})
+      if (!exportRows.length) {
+        throw new Error('لا توجد سجلات مطابقة للتصدير. تأكد من اختيار الفرع وإلغاء فلاتر البحث والتصنيف.')
+      }
+      const workbook = new ExcelJS.Workbook()
+      workbook.creator = 'NIS SportTrack'
+      workbook.created = new Date()
+      const sheet = workbook.addWorksheet('Inventory', {
+        views: [{ state: 'frozen', ySplit: 1 }],
+        pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 }
+      })
+      sheet.columns = columns.map(col => ({
+        header: col.label,
+        key: col.key,
+        width: col.key === 'item' ? 30 : col.key === 'branch' ? 22 : 18
+      }))
+      exportRows.forEach(item => {
+        const row = {}
+        columns.forEach(col => { row[col.key] = valueFor(item, col.key) ?? '' })
+        sheet.addRow(row)
+      })
+      sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } }
+      sheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF102744' } }
+      sheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' }
+      sheet.eachRow((row, rowNumber) => {
+        row.alignment = { vertical: 'middle', horizontal: 'center' }
+        if (rowNumber > 1 && rowNumber % 2 === 0) {
+          row.eachCell(cell => { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } } })
+        }
+      })
+      const buffer = await workbook.xlsx.writeBuffer()
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
-      link.href=url
-      link.download='NIS-SportTrack-Inventory.csv'
+      link.href = url
+      link.download = 'NIS-SportTrack-Inventory.xlsx'
       document.body.appendChild(link)
       link.click()
       link.remove()
-      setTimeout(() => URL.revokeObjectURL(url), 1000)
-      setNotice('تم تصدير ' + exportRows.length + ' صنف بنجاح.')
+      window.setTimeout(() => URL.revokeObjectURL(url), 3000)
+      setNotice('تم تصدير ' + exportRows.length + ' صنف إلى ملف Excel بنجاح.')
     } catch (error) {
       setError('فشل تصدير المخزون: ' + (error?.message || 'خطأ غير معروف'))
     }
