@@ -220,7 +220,13 @@ function App() {
       if (!mounted) return
       setSession(nextSession)
       if (nextSession) {
-        if (initialSessionResolved) loadData(nextSession, 0, 'all')
+        // Supabase auth callbacks run while the auth lock is held.
+        // Defer database reads until after the callback has returned.
+        if (initialSessionResolved) {
+          window.setTimeout(() => {
+            if (mounted) void loadData(nextSession, 0, 'all')
+          }, 0)
+        }
       } else {
         setProfile(null)
         setItems([])
