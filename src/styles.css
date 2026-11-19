@@ -503,3 +503,110 @@
   .app-shell .mobile-import-button{display:inline-flex;min-height:38px;padding:8px 10px;font-size:10px;white-space:nowrap;gap:6px}
   .app-shell .mobile-import-button svg{width:15px;height:15px}
 }
+
+
+/* NIS SportTrack 2026 visual refresh — branch-first inventory workspace */
+.app-shell{
+  background:
+    radial-gradient(ellipse at 90% -8%,rgba(38,75,119,.42),transparent 36%),
+    radial-gradient(ellipse at 4% 42%,rgba(157,31,48,.08),transparent 30%),
+    #07152b;
+}
+.app-shell .main-content{max-width:1900px;margin-inline:auto}
+.app-shell .topbar{
+  position:relative;isolation:isolate;overflow:hidden;
+  margin:-30px calc(-1 * clamp(18px,3vw,44px)) 0;
+  padding:22px clamp(18px,3vw,44px);
+  background:linear-gradient(105deg,#081a36 0%,#102a4b 64%,#142f52 100%);
+  border-bottom:1px solid #344c6d;
+  box-shadow:0 12px 32px #020a1833;
+}
+.app-shell .topbar:after{
+  content:"";position:absolute;z-index:-1;left:8%;top:-70px;width:230px;height:230px;
+  border:1px solid #e2bd6822;border-radius:50%;box-shadow:0 0 0 24px #e2bd6808,0 0 0 50px #e2bd6805;
+}
+.app-shell .topbar h1{font-size:clamp(17px,1.8vw,24px);letter-spacing:-.25px}
+.app-shell .eyebrow{font-size:10px;letter-spacing:2px}
+.app-shell .welcome-row{margin-top:27px}
+.app-shell .branch-switcher{
+  position:relative;overflow:hidden;margin:0 0 19px;padding:17px 18px 15px;
+  border:1px solid #304968;border-radius:15px;
+  background:linear-gradient(115deg,#102744,#0b1e38 70%,#142b49);
+  box-shadow:0 10px 26px #020a1828;
+}
+.app-shell .branch-switcher:before{
+  content:"";position:absolute;inset:0 auto 0 0;width:4px;
+  background:linear-gradient(180deg,#e7c46f,#a51f31);
+}
+.branch-switcher-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px}
+.branch-switcher-heading>div{display:grid;gap:2px}
+.section-kicker{display:block;color:#e4bd68;font-size:9px;font-weight:800;letter-spacing:1.7px}
+.branch-switcher-heading strong{font-size:13px;color:#f4f7fb}
+.branch-current{font-size:10px;color:#e9c875;background:#2b3a4e;border:1px solid #69572f;border-radius:20px;padding:5px 10px;white-space:nowrap}
+.branch-switcher-options{display:flex;gap:8px;flex-wrap:wrap}
+.branch-option{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;
+  padding:9px 13px;border:1px solid #344e70;border-radius:10px;
+  background:#0b1d35;color:#c4d1e1;font-size:11px;font-weight:700;
+  transition:background .18s ease,border-color .18s ease,transform .18s ease;
+}
+.branch-option svg{color:#d7b66a;flex:0 0 auto}
+.branch-option:hover{border-color:#c49a4b;background:#183353;transform:translateY(-1px)}
+.branch-option.active{color:#101f37;background:linear-gradient(110deg,#d5a849,#f0d17e);border-color:#f1d78f;box-shadow:0 5px 16px #d2a44825}
+.branch-option.active svg{color:#10213c}
+.branch-option.locked{cursor:default}
+.category-showcase{
+  margin:0 0 20px;padding:18px;border:1px solid #2b4363;border-radius:15px;
+  background:linear-gradient(145deg,#112744,#0b1d36);
+  box-shadow:0 10px 28px #020a1825;
+}
+.category-showcase-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.category-showcase-heading h3{margin:3px 0 2px;color:#f2f5fa;font-size:15px}
+.category-showcase-heading p{margin:0;color:#91a5bf;font-size:10px}
+.category-reset{border:1px solid #3b5270;border-radius:9px;padding:8px 12px;background:#0b1d35;color:#c7d4e4;font-size:10px;font-weight:700;white-space:nowrap}
+.category-reset.active{background:#263c58;color:#f0d184;border-color:#8c713e}
+.category-showcase-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:9px}
+.category-tile{
+  position:relative;display:flex;align-items:center;gap:11px;min-width:0;min-height:70px;
+  padding:11px 12px;text-align:right;border:1px solid #2c4566;border-radius:12px;
+  background:linear-gradient(135deg,#172f4e,#102440);color:#e6edf7;
+  transition:transform .18s ease,border-color .18s ease,background .18s ease;
+}
+.category-tile:hover{transform:translateY(-2px);border-color:#b68b43;background:linear-gradient(135deg,#203b5e,#142b49)}
+.category-tile.active{border-color:#d8b45f;background:linear-gradient(120deg,#35445a,#263b56);box-shadow:inset 0 0 0 1px #d8b45f44}
+.category-art{
+  display:grid;place-items:center;flex:0 0 43px;width:43px;height:43px;border-radius:12px;
+  color:#f0cd79;background:radial-gradient(circle at 30% 25%,#38577c,#1b3455);
+  border:1px solid #496382;box-shadow:inset 0 1px #ffffff14;
+}
+.category-tile-copy{display:grid;gap:3px;min-width:0}
+.category-tile-copy strong{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.category-tile-copy small{font-size:9px;color:#8fa5bf}
+.category-tile-arrow{margin-right:auto;color:#d9b762;font-size:17px}
+.category-empty{grid-column:1/-1;padding:20px;text-align:center;color:#8fa5bf;font-size:11px}
+@media(max-width:760px){
+  .app-shell .topbar{margin:-18px -12px 0;padding:17px 13px;align-items:center}
+  .app-shell .topbar h1{font-size:15px}
+  .app-shell .topbar .eyebrow{font-size:8px;letter-spacing:1.2px}
+  .app-shell .welcome-row{margin:19px 0 14px}
+  .app-shell .branch-switcher{padding:13px 12px;margin-bottom:14px}
+  .branch-switcher-heading{align-items:flex-start}
+  .branch-switcher-heading strong{font-size:11px}
+  .branch-current{font-size:9px}
+  .branch-switcher-options{display:flex;flex-wrap:nowrap;overflow-x:auto;padding:1px 1px 7px;scrollbar-width:thin;scroll-snap-type:x proximity}
+  .branch-option{flex:0 0 auto;min-height:40px;padding:8px 11px;scroll-snap-align:start;font-size:10px}
+  .app-shell .category-showcase{padding:13px;margin-bottom:14px}
+  .category-showcase-heading h3{font-size:13px}
+  .category-showcase-heading p{font-size:9px}
+  .category-showcase-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .category-tile{min-height:64px;padding:8px;gap:8px}
+  .category-art{width:36px;height:36px;flex-basis:36px;border-radius:10px}
+  .category-art svg{width:20px;height:20px}
+  .category-tile-copy strong{font-size:10px}
+  .category-tile-copy small{font-size:8px}
+}
+@media(max-width:390px){
+  .category-showcase-heading{align-items:flex-start}
+  .category-reset{padding:7px 8px;font-size:9px}
+  .category-showcase-grid{grid-template-columns:1fr}
+}
