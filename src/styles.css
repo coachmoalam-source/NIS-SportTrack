@@ -503,3 +503,177 @@
   .app-shell .mobile-import-button{display:inline-flex;min-height:38px;padding:8px 10px;font-size:10px;white-space:nowrap;gap:6px}
   .app-shell .mobile-import-button svg{width:15px;height:15px}
 }
+
+
+/* ===== NIS SportTrack premium refresh: clear ivory surfaces + navy data ===== */
+:root{
+  --nis-navy:#081d3d;--nis-navy-2:#10294c;--nis-red:#a91f32;--nis-gold:#d8aa4c;
+  --nis-ink:#142642;--nis-muted:#68788d;--nis-line:#e4e9f0;--nis-paper:#f5f6f9;
+}
+body{background:var(--nis-paper);color:var(--nis-ink)}
+.app-shell{
+  background:
+    radial-gradient(ellipse at 90% 0%,rgba(216,170,76,.10),transparent 27%),
+    var(--nis-paper);
+  color:var(--nis-ink);
+}
+.app-shell .sidebar{
+  background:linear-gradient(165deg,#0c2345 0%,#071831 72%,#061329 100%);
+  border-left:3px solid var(--nis-red);
+  box-shadow:8px 0 30px rgba(7,24,49,.12);
+}
+.app-shell .brand{border-bottom-color:#263d5d}
+.app-shell .brand-mark{
+  background:linear-gradient(140deg,#f7d985,#c18b2f);
+  color:#071a37;border:1px solid #f5d98e;
+}
+.app-shell .nav-item.active{
+  background:linear-gradient(105deg,#941b2d,#b62b3c);
+  border-color:#c74a56;box-shadow:0 7px 18px rgba(169,31,50,.2);
+}
+.app-shell .main-content{padding:28px clamp(16px,3vw,42px)}
+.app-shell .topbar{
+  border-bottom:1px solid #e0e6ee;
+  padding:0 0 20px;
+}
+.app-shell .topbar h1{color:var(--nis-navy);font-weight:800}
+.app-shell .eyebrow{color:#a77924}
+.app-shell .user-copy strong{color:var(--nis-ink)}
+.app-shell .user-copy small{color:#78869a}
+.app-shell .avatar{background:#fff7e6;color:var(--nis-red);border:1px solid #ecd8a9}
+.app-shell .icon-button{color:#60718a}
+.app-shell .welcome-row h2{color:var(--nis-navy);font-weight:800}
+.app-shell .welcome-row p,.app-shell .panel-heading p{color:#6d7d91}
+.app-shell .button-primary{
+  background:linear-gradient(110deg,#d6a442,#f0cd75);
+  color:#0b2040;border:1px solid #e8c56e;
+  box-shadow:0 6px 16px rgba(180,133,43,.19);
+}
+.app-shell .button-primary:hover{background:linear-gradient(110deg,#e4b655,#f7d98c)}
+.app-shell .button-light{background:#f3f5f8;color:#314761;border:1px solid #dce3ec}
+.app-shell .button-light:hover{background:#e9eef5;color:#10294c}
+.app-shell .dashboard-hero{
+  border:1px solid #304a6c;
+  background:linear-gradient(110deg,#071a37 0%,#10294b 58%,#17385d 100%);
+  box-shadow:0 14px 30px rgba(7,24,49,.13);
+}
+.app-shell .stats-grid{gap:13px}
+.app-shell .stat-card{
+  background:#fff;border:1px solid #e2e8f0;
+  box-shadow:0 5px 18px rgba(16,41,76,.055);
+  border-radius:15px;
+}
+.app-shell .stat-card span{color:#75849a}
+.app-shell .stat-card strong{color:var(--nis-navy)}
+.app-shell .stat-icon{background:#f0f3f8;color:#17375d;border:1px solid #e1e7ef}
+.app-shell .stat-icon.warning{background:#fff6e4;color:#b37a1e;border-color:#f0dfba}
+.app-shell .stat-icon.danger{background:#fff0f0;color:#ad2737;border-color:#f1d5d9}
+.app-shell .panel{
+  background:#fff;color:var(--nis-ink);
+  border:1px solid #e1e7ef;border-radius:17px;
+  box-shadow:0 8px 25px rgba(16,41,76,.055);
+}
+.app-shell .panel-heading{border-bottom:1px solid #e8edf3}
+.app-shell .panel-heading h3{color:var(--nis-navy)}
+.app-shell .search-box,.app-shell .select-wrap{
+  background:#fff;border:1px solid #dce3ec;color:#718199;
+}
+.app-shell .search-box input,.app-shell .select-wrap select{color:#182d4b}
+.app-shell .search-box input::placeholder{color:#9aa6b5}
+.app-shell .select-wrap select option{background:#fff;color:#182d4b}
+.app-shell .table-wrap{border:1px solid #1b3558;border-radius:12px}
+.app-shell table{border-spacing:0}
+.app-shell th,.app-shell .inventory-data-table th{
+  background:#0d2445;color:#f3d88f;
+  border-color:#284365;
+}
+.app-shell td,.app-shell .inventory-data-table td{
+  background:#112b4d;color:#e1e9f4;border-bottom:1px solid #294263;
+}
+.app-shell tbody tr:hover td{background:#19385e}
+.app-shell .item-cell strong{color:#fff}
+.app-shell .item-cell small{color:#b0bfd2}
+.app-shell .numeric{color:#fff}
+.app-shell .number-pill.warning{background:#4b3b1e;color:#f4d17c;border-color:#81642d}
+.app-shell .number-pill.danger{background:#4a2631;color:#ffb2b6;border-color:#80404d}
+.app-shell .available{color:#f2cd75}
+.app-shell .table-sort{color:inherit}
+.app-shell .table-footer{color:#73839a}
+.app-shell .pagination span{color:#314761}
+.app-shell .column-picker>summary{background:#fff;color:#344b67;border-color:#dce3ec}
+.app-shell .column-picker-menu{background:#0d2445;border-color:#344e70}
+.app-shell .alert-error{background:#fff0f0;color:#a21e30;border:1px solid #efcbd0}
+.app-shell .alert-success{background:#edf8f2;color:#23714e;border:1px solid #cde8d9}
+.app-shell .modal-backdrop{background:rgba(5,18,39,.68);backdrop-filter:blur(6px)}
+.app-shell .modal{background:#fff;color:#142642;border:1px solid #e0e6ee;box-shadow:0 24px 80px rgba(5,18,39,.25)}
+.app-shell .modal-heading{border-color:#e7ecf2}
+.app-shell .modal-heading h3{color:#10294c}
+.app-shell .modal-heading p{color:#75849a}
+.app-shell .field{color:#344b67}
+.app-shell .field input,.app-shell .field select,.app-shell .field textarea{
+  background:#fff;color:#142642;border:1px solid #dce3ec;
+}
+.app-shell .field input::placeholder,.app-shell .field textarea::placeholder{color:#9aa6b5}
+.app-shell .field select option{background:#fff;color:#142642}
+.app-shell .modal-actions{border-color:#e7ecf2}
+.app-shell .footer{color:#8a98a9}
+.app-shell .footer span{color:var(--nis-gold)}
+/* Consistent premium cards across audits, maintenance, comparison, reports and settings */
+.app-shell .audit-card,.app-shell .audit-session-card,.app-shell .maintenance-card,
+.app-shell .service-card,.app-shell .comparison-card,.app-shell .report-card,
+.app-shell .settings-card,.app-shell .reports-branch-card{
+  background:#fff!important;color:#142642!important;
+  border:1px solid #e1e7ef!important;
+  box-shadow:0 5px 18px rgba(16,41,76,.045);
+}
+.app-shell .settings-card h3,.app-shell .settings-intro h2,
+.app-shell .reports-subtitle{color:#10294c}
+.app-shell .settings-card p,.app-shell .settings-card small,
+.app-shell .settings-intro p{color:#6d7d91}
+.app-shell .settings-form input{background:#fff;color:#142642;border-color:#dce3ec}
+.app-shell .language-options button{background:#f3f5f8;color:#344b67;border-color:#dce3ec}
+.app-shell .language-options button.selected{background:#e4bd68;color:#10213e;border-color:#d5a13e}
+.app-shell .reports-summary-card{background:linear-gradient(145deg,#10294c,#0a1e3a);border-color:#294565}
+.app-shell .reports-branch-card>div:first-child{color:#344b67}
+.app-shell .reports-branch-card>small,.app-shell .reports-branch-metrics{color:#6d7d91}
+.app-shell .reports-subtitle{color:#10294c}
+.app-shell .excel-import-intro,.app-shell .excel-import-card{
+  background:#fff;border-color:#e1e7ef;color:#142642;
+  box-shadow:0 8px 24px rgba(16,41,76,.05);
+}
+.app-shell .excel-import-icon{background:#fff4d9;color:#a91f32;border:1px solid #f0dfb7}
+.app-shell .excel-import-intro h3,.app-shell .excel-preview-heading h4{color:#10294c}
+.app-shell .excel-import-intro p,.app-shell .excel-preview-heading p{color:#6d7d91}
+.app-shell .excel-field{color:#172d4b}
+.app-shell .excel-field select{background:#fff;color:#10294c;border:2px solid #d8aa4c}
+.app-shell .excel-upload-zone{background:#f8fafc;border-color:#d8aa4c;color:#a91f32}
+.app-shell .excel-upload-zone strong{color:#10294c}
+.app-shell .excel-upload-zone span{color:#6d7d91}
+.app-shell .excel-summary-grid>div{background:#f5f7fa;border:1px solid #e4e9f0}
+.app-shell .excel-summary-grid span{color:#68788d}
+.app-shell .excel-summary-grid strong{color:#10294c}
+.app-shell .excel-table-wrap{border-color:#1d385c}
+.app-shell .excel-table-wrap th{background:#0d2445;color:#f3d88f;border-color:#294365}
+.app-shell .excel-table-wrap td{background:#112b4d;color:#e1e9f4;border-color:#294365}
+.app-shell .excel-table-wrap tr.invalid td{background:#482632;color:#ffb0b2}
+.app-shell .excel-row-error{color:#ffb0b2}
+.app-shell .excel-row-ok{color:#9be0bd}
+.app-shell .excel-branch-confirm{background:#fff8e8!important;border:2px solid #d8aa4c!important}
+.app-shell .excel-branch-confirm-title strong{color:#10294c!important}
+.app-shell .excel-branch-confirm-title>span{color:#53657e!important}
+.app-shell .excel-branch-bottom-field>span{color:#10294c!important}
+.app-shell .excel-branch-bottom-field select{background:#fff!important;color:#10294c!important;border:2px solid #d8aa4c!important}
+.app-shell .excel-branch-bottom-fixed{background:#fff!important;border-color:#d8aa4c!important}
+.app-shell .excel-branch-bottom-fixed span{color:#53657e!important}
+.app-shell .excel-branch-bottom-fixed strong{color:#10294c!important}
+.app-shell .excel-import-actions>span{color:#68788d}
+@media(max-width:760px){
+  .app-shell .main-content{padding:15px 11px}
+  .app-shell .topbar{padding-bottom:15px}
+  .app-shell .topbar h1{font-size:15px}
+  .app-shell .welcome-row h2{font-size:14px}
+  .app-shell .panel{border-radius:14px}
+  .app-shell .dashboard-hero{border-radius:15px}
+  .app-shell .excel-import-card{padding:13px}
+  .app-shell .excel-branch-confirm{padding:14px}
+}
