@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Activity, AlertTriangle, Wrench, ArrowDownToLine, ArrowUpFromLine, Boxes,
   Building2, CheckCircle2, ChevronDown, CircleUserRound, ClipboardList,
-  LogOut, Package, Plus, RefreshCw, Search, ShieldCheck, Trash2, X, Download, Printer, SlidersHorizontal, ArrowUpDown
+  LogOut, Package, Plus, RefreshCw, Search, ShieldCheck, Trash2, X, Download, Printer, SlidersHorizontal, ArrowUpDown, Dumbbell, Trophy, Volleyball, Waves, Target, CircleDot, Dribbble, Bike
 } from 'lucide-react'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
 import PeriodicAudits from './components/PeriodicAudits'
@@ -52,6 +52,19 @@ const getSportPrefix = value => {
   return words.find(entry => name.includes(entry.word))?.prefix || ''
 }
 const formatDate = value => value ? new Date(value).toLocaleDateString('en-GB') : '—'
+
+const getCategoryIcon = category => {
+  const value = String(category || '').toLowerCase()
+  if (/football|soccer|قدم|كرة/.test(value)) return Dribbble
+  if (/basket|سلة/.test(value)) return CircleDot
+  if (/volley|طائرة/.test(value)) return Volleyball
+  if (/swim|سباح/.test(value)) return Waves
+  if (/fitness|لياقة|gym|crossfit|هايروكس/.test(value)) return Dumbbell
+  if (/tennis|تنس|badminton|ريشة/.test(value)) return CircleDot
+  if (/athletic|ألعاب قوى|جري/.test(value)) return Bike
+  if (/target|archery|رماية|مبارزة/.test(value)) return Target
+  return Trophy
+}
 
 function App() {
   const [session, setSession] = useState(null)
@@ -538,6 +551,17 @@ function App() {
           {activeSection === 'inventory' && <button className="button button-primary" onClick={openNew} disabled={!canManage}><Plus size={18}/> {t('إضافة صنف جديد','Add New Item')}</button>}
         </section>
 
+        {activeSection === 'inventory' && <section className="branch-switcher" aria-label="اختيار الفرع">
+          <div className="branch-switcher-heading">
+            <div><span className="section-kicker">BRANCH CONTROL</span><strong>{canViewAllBranches ? 'اختر الفرع لمراجعة مخزونه' : 'الفرع المرتبط بحسابك'}</strong></div>
+            <span className="branch-current">{canViewAllBranches ? (branchFilter === 'all' ? 'كل الفروع' : branches.find(branch => branch.id === branchFilter)?.name || 'الفرع المحدد') : branches.find(branch => branch.id === ownBranchId)?.name || 'فرعي'}</span>
+          </div>
+          {canViewAllBranches ? <div className="branch-switcher-options">
+            <button type="button" className={branchFilter === 'all' ? 'branch-option active' : 'branch-option'} onClick={() => { setBranchFilter('all'); setPage(0); loadData(session, 0, 'all', search) }}><Building2 size={17}/><span>كل الفروع</span></button>
+            {branches.map(branch => <button type="button" key={branch.id} className={branchFilter === branch.id ? 'branch-option active' : 'branch-option'} onClick={() => { setBranchFilter(branch.id); setPage(0); loadData(session, 0, branch.id, search) }}><Building2 size={17}/><span>{branch.name}</span></button>)}
+          </div> : <div className="branch-switcher-options"><span className="branch-option active locked"><Building2 size={17}/><span>{branches.find(branch => branch.id === ownBranchId)?.name || 'الفرع المرتبط بالحساب'}</span><ShieldCheck size={15}/></span></div>}
+        </section>}
+
         {activeSection === 'inventory' && <section className="dashboard-hero">
           <div className="dashboard-hero-copy">
             <span className="dashboard-hero-kicker">{t('NIS • إدارة الأدوات الرياضية','NIS • SPORTS EQUIPMENT MANAGEMENT')}</span>
@@ -560,11 +584,17 @@ function App() {
           <Stat icon={<Trash2/>} label="إجمالي المفقود" value={inventoryTotals.missing} tone="danger" onClick={() => { setActiveSection('inventory'); setInventoryFocus('missing') }}/>
         </section>
 
+        <section className="category-showcase">
+          <div className="category-showcase-heading"><div><span className="section-kicker">SPORT CATEGORIES</span><h3>تصفح الأدوات حسب التصنيف</h3><p>اختَر نوع النشاط للوصول السريع إلى أدواته</p></div><button type="button" className={categoryFilter === 'all' ? 'category-reset active' : 'category-reset'} onClick={() => setCategoryFilter('all')}>كل التصنيفات</button></div>
+          <div className="category-showcase-grid">
+            {categories.length ? categories.map(category => { const CategoryIcon = getCategoryIcon(category); const count = items.filter(item => item.category === category).length; return <button type="button" key={category} className={categoryFilter === category ? 'category-tile active' : 'category-tile'} onClick={() => setCategoryFilter(category)}><span className="category-art"><CategoryIcon size={24}/></span><span className="category-tile-copy"><strong>{category}</strong><small>{count} صنف في السجلات المحمّلة</small></span><span className="category-tile-arrow">←</span></button> }) : <div className="category-empty">ستظهر تصنيفات الأدوات هنا بعد تحميل بيانات المخزون.</div>}
+          </div>
+        </section>
+
         <section className="panel">
           <div className="panel-heading"><div><h3>{t('سجل الأدوات','Equipment Register')}</h3><p>{t('بيانات الجرد حسب الفرع','Inventory records by branch')} {inventoryFocus !== 'all' && <button className="inline-clear-filter" onClick={() => setInventoryFocus('all')}>إلغاء التصفية ×</button>}</p></div><button className="button button-light" onClick={() => loadData(session, page, branchFilter, search)}><RefreshCw size={16}/> {t('تحديث البيانات','Refresh Data')}</button></div>
           <div className="filters">
             <label className="search-box"><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="ابحث في جميع سجلات المخزون باسم الصنف أو الكود..."/></label>
-            {canViewAllBranches && <label className="select-wrap"><Building2 size={17}/><select value={branchFilter} onChange={e => { const next = e.target.value; setBranchFilter(next); setPage(0); loadData(session, 0, next, search) }}><option value="all">{t('كل الفروع','All Branches')}</option>{branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select><ChevronDown size={15}/></label>}
             <label className="select-wrap"><select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}><option value="all">{t('كل التصنيفات','All Categories')}</option>{categories.map(c => <option key={c} value={c}>{c}</option>)}</select><ChevronDown size={15}/></label>
           </div>
           <div className="inventory-table-tools">
