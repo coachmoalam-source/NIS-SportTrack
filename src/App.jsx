@@ -286,21 +286,78 @@ function App() {
     const field = key === 'item' ? 'item_name' : key === 'branch' ? 'branch_name' : key === 'category' ? 'category' : key === 'quantity' ? 'quantity' : key === 'damaged' ? 'damaged_quantity' : key === 'missing' ? 'missing_quantity' : key === 'available' ? 'available' : 'updated_at'
     setSortConfig(current => ({key:field,direction:current.key===field && current.direction==='asc'?'desc':'asc'}))
   }
-  const exportInventoryCsv = () => {
-    const columns = inventoryColumnDefs.filter(col=>isColumnVisible(col.key))
-    const valueFor = (item,key) => ({
-      item: item.item_name, branch: item.branches?.name || '', category: item.category || '',
-      quantity: item.quantity, damaged: item.damaged_quantity, missing: item.missing_quantity,
-      available: Math.max(0,number(item.quantity)-number(item.damaged_quantity)-number(item.missing_quantity)),
-      updated: formatDate(item.updated_at)
-    }[key])
-    const escapeCsv = value => '"' + String(value ?? '').replace(/"/g,'""') + '"'
-    const csv = '\uFEFF' + [columns.map(col=>escapeCsv(col.label)).join(','), ...sortedFilteredItems.map(item=>columns.map(col=>escapeCsv(valueFor(item,col.key))).join(','))].join('\\r\\n')
-    const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'})
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href=url; link.download='NIS-SportTrack-Inventory.csv'; link.click()
-    URL.revokeObjectURL(url)
+  const exportInventoryCsv = async () => {
+    if (!supabase || !session || !profile) {
+      setError('تعذر التصدير: جلسة المستخدم أو بيانات الصلاحية غير جاهزة.')
+      return
+    }
+    try {
+      setError('')
+      const columns = inventoryColumnDefs.filter(col => isColumnVisible(col.key))
+      const canSeeAll = ['super_admin', 'executive_admin'].includes(profile.role)
+      const pageSize = 1000
+      let from = 0
+      let allRows = []
+      while (true) {
+        let query = supabase.from('inventory')
+          .select('id, branch_id, quantity, damaged_quantity, missing_quantity, notes, updated_at, branches!inventory_branch_id_fkey(name), equipment!inventory_equipment_id_fkey(id, name, item_code, photo_url, unit, categories!equipment_category_id_fkey(name))')
+          .order('updated_at', { ascending: false })
+          .range(from, from + pageSize - 1)
+        if (!canSeeAll) {
+          if (!profile.branch_id) throw new Error('حسابك غير مرتبط بفرع.')
+          query = query.eq('branch_id', profile.branch_id)
+        } else if (branchFilter !== 'all') {
+          query = query.eq('branch_id', branchFilter)
+        }
+        const { data, error } = await query
+        if (error) throw error
+        const batch = data || []
+        allRows.push(...batch)
+        if (batch.length < pageSize) break
+        from += pageSize
+      }
+      const normalized = allRows.map(row => ({
+        ...row,
+        item_name: row.equipment?.name || 'صنف غير معروف',
+        item_code: row.equipment?.item_code || '',
+        category: row.equipment?.categories?.name || row.equipment?.custom_category || '',
+        branches: row.branches
+      }))
+      const term = search.trim().toLowerCase()
+      const exportRows = normalized.filter(item => {
+        const matchesSearch = !term || [item.item_name, item.item_code, item.category, item.branches?.name].some(value => String(value || '').toLowerCase().includes(term))
+        const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter
+        const available = Math.max(0, number(item.quantity) - number(item.damaged_quantity) - number(item.missing_quantity))
+        const matchesFocus = inventoryFocus === 'all' || (inventoryFocus === 'damaged' && number(item.damaged_quantity) > 0) || (inventoryFocus === 'missing' && number(item.missing_quantity) > 0) || (inventoryFocus === 'available' && available > 0)
+        return matchesSearch && matchesCategory && matchesFocus
+      }).sort((a,b) => {
+        const key = sortConfig.key
+        const av = key === 'branch_name' ? (a.branches?.name || '') : key === 'available' ? Math.max(0,number(a.quantity)-number(a.damaged_quantity)-number(a.missing_quantity)) : a[key]
+        const bv = key === 'branch_name' ? (b.branches?.name || '') : key === 'available' ? Math.max(0,number(b.quantity)-number(b.damaged_quantity)-number(b.missing_quantity)) : b[key]
+        if (typeof av === 'number' || typeof bv === 'number') return (number(av)-number(bv)) * (sortConfig.direction === 'asc' ? 1 : -1)
+        return String(av || '').localeCompare(String(bv || ''), 'ar', {numeric:true}) * (sortConfig.direction === 'asc' ? 1 : -1)
+      })
+      const valueFor = (item,key) => ({
+        item: item.item_name, branch: item.branches?.name || '', category: item.category || '',
+        quantity: item.quantity, damaged: item.damaged_quantity, missing: item.missing_quantity,
+        available: Math.max(0,number(item.quantity)-number(item.damaged_quantity)-number(item.missing_quantity)),
+        updated: formatDate(item.updated_at)
+      }[key])
+      const escapeCsv = value => '"' + String(value ?? '').replace(/"/g,'""') + '"'
+      const csv = '\uFEFF' + [columns.map(col=>escapeCsv(col.label)).join(','), ...exportRows.map(item=>columns.map(col=>escapeCsv(valueFor(item,col.key))).join(','))].join('\r\n')
+      const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'})
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href=url
+      link.download='NIS-SportTrack-Inventory.csv'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+      setNotice('تم تصدير ' + exportRows.length + ' صنف بنجاح.')
+    } catch (error) {
+      setError('فشل تصدير المخزون: ' + (error?.message || 'خطأ غير معروف'))
+    }
   }
 
   const categories = [...new Set(items.map(item => item.category).filter(Boolean))]
