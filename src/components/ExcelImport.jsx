@@ -55,9 +55,10 @@ const cellText = cell => {
 
 const asInteger = value => {
   if (value === '' || value === null || value === undefined) return null
-  const normalized = String(value).replace(/,/g, '').trim()
+  const normalized = normalizeDigits(value).replace(/[٬,\s]/g, '').trim()
   if (!/^\d+$/.test(normalized)) return NaN
-  return Number(normalized)
+  const parsed = Number(normalized)
+  return Number.isSafeInteger(parsed) ? parsed : NaN
 }
 
 const slugCode = value => String(value || '').toUpperCase().replace(/[^A-Z0-9]+/g, '').slice(0, 3) || 'BR'
@@ -95,6 +96,7 @@ async function parseWorkbook(file, resolveHeader) {
     if (!Object.values(values).some(value => String(value || '').trim())) continue
     rows.push({
       sourceRow: rowNumber,
+      conditionBreakdownProvided: header.headers.some(field => ['new_quantity', 'used_quantity', 'damaged_quantity'].includes(field)),
       item_name: String(values.item_name || '').trim(),
       item_code: String(values.item_code || '').trim(),
       category: String(values.category || '').trim(),
@@ -155,6 +157,7 @@ async function parseWordDocument(file, resolveHeader) {
       if (!Object.values(values).some(value => String(value || '').trim())) continue
       rows.push({
         sourceRow: 'WORD-' + tableNumber + '-' + (index + 1),
+        conditionBreakdownProvided: headers.some(field => ['new_quantity', 'used_quantity', 'damaged_quantity'].includes(field)),
         item_name: String(values.item_name || '').trim(),
         item_code: String(values.item_code || '').trim(),
         category: String(values.category || '').trim(),
@@ -373,6 +376,9 @@ async function parsePdf(file, resolveHeader) {
 
     rows.push({
       sourceRow: 'PDF-' + line.page + '-' + (i - headerIndex),
+      conditionBreakdownProvided: headerAnchors.length > 0
+        ? headerAnchors.some(anchor => ['new_quantity', 'used_quantity', 'damaged_quantity'].includes(anchor.field))
+        : ['new_quantity', 'used_quantity', 'damaged_quantity'].some(field => cells[field] !== undefined),
       item_name: itemName,
       item_code: String(cells.item_code || '').trim(),
       category: String(cells.category || '').trim(),
@@ -411,10 +417,10 @@ function validateRows(rows) {
     if (row.item_code) seenCodes.add(duplicateKey)
     else if (row.item_name) seenNames.add(duplicateKey)
     const conditionTotal = row.new_quantity + row.used_quantity + row.damaged_quantity
-    const warnings = Number.isInteger(row.quantity) && conditionTotal !== row.quantity
-      ? ['مجموع الجديد والمستعمل والتالف (' + conditionTotal + ') لا يساوي الإجمالي (' + row.quantity + ')']
-      : []
-    return { ...row, errors, warnings }
+    if (row.conditionBreakdownProvided && Number.isInteger(row.quantity) && conditionTotal !== row.quantity) {
+      errors.push('مجموع الجديد والمستعمل والتالف (' + conditionTotal + ') لا يساوي الإجمالي (' + row.quantity + ')')
+    }
+    return { ...row, errors }
   })
 }
 
@@ -640,7 +646,7 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
           if (oldStock) updated += 1
           else created += 1
           const movementQuantity = oldStock
-            ? Math.max(1, Math.abs(row.quantity - Number(oldStock.quantity)), Math.abs(row.damaged_quantity - Number(oldStock.damaged_quantity)), Math.abs(row.missing_quantity - Number(oldStock.missing_quantity)))
+            ? Math.max(1, Math.abs(row.quantity - Number(oldStock.quantity)), Math.abs(row.new_quantity - Number(oldStock.new_quantity || 0)), Math.abs(row.used_quantity - Number(oldStock.used_quantity || 0)), Math.abs(row.damaged_quantity - Number(oldStock.damaged_quantity)), Math.abs(row.missing_quantity - Number(oldStock.missing_quantity)))
             : row.quantity
           if (movementQuantity > 0) {
             const { error: movementError } = await supabase.from('inventory_movements').insert({
@@ -722,7 +728,7 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
                     <tr key={row.sourceRow} className={row.errors.length ? 'invalid' : ''}>
                       <td>{row.sourceRow}</td><td>{row.item_name || '—'}</td><td>{row.item_code || 'تلقائي'}</td><td>{row.category || '—'}</td>
                       <td>{Number.isInteger(row.quantity) ? row.quantity : '—'}</td><td>{row.new_quantity}</td><td>{row.used_quantity}</td><td>{row.damaged_quantity}</td><td>{row.missing_quantity}</td>
-                      <td>{row.errors.length ? <span className="excel-row-error">{row.errors.join('، ')}</span> : row.warnings?.length ? <span className="excel-row-error">{row.warnings.join('، ')}</span> : <span className="excel-row-ok">سليم</span>}</td>
+                      <td>{row.errors.length ? <span className="excel-row-error">{row.errors.join('، ')}</span> : <span className="excel-row-ok">سليم</span>}</td>
                     </tr>
                   ))}
                 </tbody>
