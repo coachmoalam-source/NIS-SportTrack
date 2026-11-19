@@ -271,7 +271,7 @@ async function parsePdf(file, resolveHeader) {
       if (directField) return [{ x: part.x + (part.width || 0) / 2, field: directField, label: part.text }]
       // Some PDFs expose an entire table header as one text object (e.g. "Tools Number New Used Damage").
       // Split that object into individual header labels and estimate each label's horizontal position.
-      const matches = [...String(part.text).matchAll(/\\S+/g)]
+      const matches = [...String(part.text).matchAll(/\S+/g)]
       const usableWidth = part.width || String(part.text).length * 5
       return matches.map(match => {
         const token = match[0]
