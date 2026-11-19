@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Activity, AlertTriangle, Wrench, ArrowDownToLine, ArrowUpFromLine, Boxes,
-  Building2, CheckCircle2, ChevronDown, CircleUserRound, ClipboardList,
+  Building2, CheckCircle2, ChevronDown, ChevronRight, CircleUserRound, ClipboardList,
   LogOut, Package, Plus, RefreshCw, Search, ShieldCheck, Trash2, X, Download, Printer, SlidersHorizontal, ArrowUpDown
 } from 'lucide-react'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
