@@ -567,10 +567,10 @@ function App() {
           </div>
           <div className="branch-shortcuts-grid">
             <button type="button" className={branchFilter === 'all' ? 'branch-shortcut active' : 'branch-shortcut'} onClick={() => { setBranchFilter('all'); setPage(0); setInventoryFocus('all'); loadData(session, 0, 'all', search) }}>
-              <span className="branch-shortcut-icon"><Boxes size={20}/></span><span className="branch-shortcut-copy"><strong>{t('كل الفروع','All Branches')}</strong><small>{t('عرض شامل','Overview')}</small></span><ChevronRight size={18}/>
+              <span className="branch-shortcut-icon"><Boxes size={20}/></span><span className="branch-shortcut-copy"><strong>{t('كل الفروع','All Branches')}</strong><small>{t('عرض شامل','Overview')}</small></span><ChevronDown size={18}/>
             </button>
             {branches.map(branch => <button type="button" key={branch.id} className={branchFilter === branch.id ? 'branch-shortcut active' : 'branch-shortcut'} onClick={() => { setBranchFilter(branch.id); setPage(0); setInventoryFocus('all'); loadData(session, 0, branch.id, search) }}>
-              <span className="branch-shortcut-icon"><MapPin size={20}/></span><span className="branch-shortcut-copy"><strong>{branch.name}</strong><small>{t('عرض أصناف الفرع','View branch items')}</small></span><ChevronRight size={18}/>
+              <span className="branch-shortcut-icon"><Building2 size={20}/></span><span className="branch-shortcut-copy"><strong>{branch.name}</strong><small>{t('عرض أصناف الفرع','View branch items')}</small></span><ChevronRight size={18}/>
             </button>)}
           </div>
         </section>}
