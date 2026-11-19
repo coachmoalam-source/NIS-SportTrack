@@ -850,3 +850,36 @@ body{background:var(--nis-paper);color:var(--nis-ink)}
  .app-shell .branch-shortcut-copy small{font-size:9px}
 }
 @media(max-width:360px){.app-shell .branch-shortcuts-grid{grid-template-columns:1fr}}
+
+/* Production mobile polish — ported onto the newer main dashboard without replacing its branch-shortcuts implementation */
+@media screen and (max-width:760px){
+  html,body,#root{width:100%!important;max-width:100%!important;overflow-x:hidden!important}
+  .app-shell{width:100%!important;max-width:100%!important;min-width:0!important;overflow-x:clip!important}
+  .app-shell>.main-content{width:100%!important;max-width:100%!important;min-width:0!important;padding-inline:12px!important}
+  .app-shell .topbar{min-height:0!important;padding-top:10px!important;padding-bottom:12px!important;flex-wrap:wrap!important}
+  .app-shell .topbar h1{font-size:17px!important;line-height:1.4!important;white-space:normal!important}
+  .app-shell .branch-shortcuts{width:100%!important;max-width:100%!important;min-width:0!important;padding:13px!important;margin:12px 0 14px!important}
+  .app-shell .branch-shortcuts-heading{display:flex!important;align-items:flex-start!important;gap:10px!important;margin-bottom:12px!important}
+  .app-shell .branch-shortcuts-heading>div{min-width:0!important;flex:1!important}
+  .app-shell .branch-shortcuts-heading h3{font-size:14px!important;line-height:1.45!important}
+  .app-shell .branch-shortcuts-heading p{font-size:11px!important;line-height:1.55!important}
+  .app-shell .branch-shortcuts-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;width:100%!important}
+  .app-shell .branch-shortcut{display:flex!important;width:100%!important;min-width:0!important;min-height:52px!important;padding:8px!important;gap:7px!important}
+  .app-shell .branch-shortcut-copy{min-width:0!important;flex:1!important}
+  .app-shell .branch-shortcut-copy strong{font-size:10px!important;overflow-wrap:anywhere!important}
+  .app-shell .dashboard-hero{width:100%!important;max-width:100%!important;min-width:0!important;padding:22px 15px!important;margin:12px 0!important}
+  .app-shell .dashboard-hero-copy{width:100%!important;max-width:100%!important;text-align:center!important}
+  .app-shell .dashboard-hero-copy h2{font-size:20px!important;line-height:1.4!important}
+  .app-shell .dashboard-hero-copy p{font-size:12px!important;line-height:1.6!important}
+  .app-shell .dashboard-hero-meta{justify-content:center!important;flex-wrap:wrap!important;gap:10px!important}
+  .app-shell .stats-grid{width:100%!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;margin:12px 0!important}
+  .app-shell .stat-card{width:100%!important;min-width:0!important;min-height:86px!important;padding:11px 9px!important}
+  .app-shell .stat-card:last-child{grid-column:1/-1!important}
+}
+@media screen and (max-width:390px){
+  .app-shell>.main-content{padding-inline:9px!important}
+  .app-shell .branch-shortcuts-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .app-shell .branch-shortcut{padding:7px 5px!important;gap:5px!important}
+  .app-shell .branch-shortcut-copy strong{font-size:9px!important}
+  .app-shell .dashboard-hero-copy h2{font-size:18px!important}
+}
