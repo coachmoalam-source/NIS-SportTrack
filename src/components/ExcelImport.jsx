@@ -342,7 +342,7 @@ async function parsePdf(file, resolveHeader) {
     }
 
     if (!itemName) continue
-    if (cells.item_name) lastBaseName = String(cells.item_name).trim()
+    lastBaseName = itemName
 
     const explicitMissing = parsePdfCount(cells.missing_quantity)
     const missingQuantity = parsedQuantity?.ratio
