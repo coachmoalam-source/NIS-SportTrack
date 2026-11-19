@@ -90,8 +90,7 @@ async function parseWorkbook(file, resolveHeader) {
       if (!field) return
       const rawHeader = String(source.getCell(index + 1).value || '').trim()
       const value = cellText(source.getCell(index + 1))
-      if (normalizeHeader(rawHeader) === 'used') values.used_tools = value
-      else values[field] = value
+      values[field] = value
     })
     if (!Object.values(values).some(value => String(value || '').trim())) continue
     rows.push({
@@ -100,6 +99,8 @@ async function parseWorkbook(file, resolveHeader) {
       item_code: String(values.item_code || '').trim(),
       category: String(values.category || '').trim(),
       quantity: asInteger(values.quantity),
+      new_quantity: values.new_quantity === undefined || values.new_quantity === '' ? 0 : asInteger(values.new_quantity),
+      used_quantity: values.used_quantity === undefined || values.used_quantity === '' ? 0 : asInteger(values.used_quantity),
       damaged_quantity: values.damaged_quantity ? asInteger(values.damaged_quantity) : 0,
       missing_quantity: values.missing_quantity ? asInteger(values.missing_quantity) : 0,
       unit: String(values.unit || 'قطعة').trim() || 'قطعة',
@@ -149,8 +150,7 @@ async function parseWordDocument(file, resolveHeader) {
         if (!field) return
         const rawHeader = matrix[headerIndex][columnIndex] || ''
         const value = matrix[index][columnIndex] || ''
-        if (normalizeHeader(rawHeader) === 'used') values.used_tools = value
-        else values[field] = value
+        values[field] = value
       })
       if (!Object.values(values).some(value => String(value || '').trim())) continue
       rows.push({
@@ -159,6 +159,8 @@ async function parseWordDocument(file, resolveHeader) {
         item_code: String(values.item_code || '').trim(),
         category: String(values.category || '').trim(),
         quantity: asInteger(values.quantity),
+        new_quantity: values.new_quantity === undefined || values.new_quantity === '' ? 0 : asInteger(values.new_quantity),
+        used_quantity: values.used_quantity === undefined || values.used_quantity === '' ? 0 : asInteger(values.used_quantity),
         damaged_quantity: values.damaged_quantity ? asInteger(values.damaged_quantity) : 0,
         missing_quantity: values.missing_quantity ? asInteger(values.missing_quantity) : 0,
         unit: String(values.unit || 'قطعة').trim() || 'قطعة',
@@ -312,7 +314,7 @@ async function parsePdf(file, resolveHeader) {
       }
     } else {
       const parts = split(line.text)
-      const mappedFields = ['item_name', 'quantity', 'missing_quantity', 'damaged_quantity', 'notes']
+      const mappedFields = ['item_name', 'quantity', 'new_quantity', 'used_quantity', 'damaged_quantity', 'missing_quantity', 'notes']
       mappedFields.forEach((field, index) => {
         if (parts[index]) cells[field] = parts[index]
       })
@@ -362,7 +364,9 @@ async function parsePdf(file, resolveHeader) {
       item_code: String(cells.item_code || '').trim(),
       category: String(cells.category || '').trim(),
       quantity: parsedQuantity?.quantity ?? null,
-      damaged_quantity: 0,
+      new_quantity: parsePdfCount(cells.new_quantity) ?? 0,
+      used_quantity: parsePdfCount(cells.used_quantity) ?? 0,
+      damaged_quantity: parsePdfCount(cells.damaged_quantity) ?? 0,
       missing_quantity: missingQuantity,
       unit: String(cells.unit || 'قطعة').trim() || 'قطعة',
       notes: rowNotes.join(' | ')
@@ -383,6 +387,8 @@ function validateRows(rows) {
     const errors = []
     if (!row.item_name) errors.push('اسم الصنف مطلوب')
     if (row.quantity === null || !Number.isInteger(row.quantity) || row.quantity < 0) errors.push('الكمية يجب أن تكون رقماً صحيحاً غير سالب')
+    if (!Number.isInteger(row.new_quantity) || row.new_quantity < 0) errors.push('قيمة الجديد غير صحيحة')
+    if (!Number.isInteger(row.used_quantity) || row.used_quantity < 0) errors.push('قيمة المستعمل غير صحيحة')
     if (!Number.isInteger(row.damaged_quantity) || row.damaged_quantity < 0) errors.push('قيمة التالف غير صحيحة')
     if (!Number.isInteger(row.missing_quantity) || row.missing_quantity < 0) errors.push('قيمة المفقود غير صحيحة')
     if (Number.isInteger(row.quantity) && row.damaged_quantity + row.missing_quantity > row.quantity) errors.push('التالف والمفقود أكبر من الكمية الإجمالية')
@@ -451,7 +457,9 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
       { header: 'اسم الصنف', key: 'item_name', width: 28 },
       { header: 'كود الصنف', key: 'item_code', width: 18 },
       { header: 'التصنيف', key: 'category', width: 20 },
-      { header: 'الكمية', key: 'quantity', width: 14 },
+      { header: 'الكمية الإجمالية', key: 'quantity', width: 16 },
+      { header: 'الجديد', key: 'new_quantity', width: 14 },
+      { header: 'المستعمل', key: 'used_quantity', width: 14 },
       { header: 'التالف', key: 'damaged_quantity', width: 14 },
       { header: 'المفقود', key: 'missing_quantity', width: 14 },
       { header: 'الوحدة', key: 'unit', width: 14 },
@@ -566,7 +574,7 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
         }
 
         const { data: oldStock, error: stockReadError } = await supabase
-          .from('inventory').select('id, quantity, damaged_quantity, missing_quantity')
+          .from('inventory').select('id, quantity, new_quantity, used_quantity, damaged_quantity, missing_quantity')
           .eq('branch_id', targetBranchId).eq('equipment_id', equipment.id).maybeSingle()
         if (stockReadError) throw stockReadError
 
@@ -574,6 +582,8 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
           branch_id: targetBranchId,
           equipment_id: equipment.id,
           quantity: row.quantity,
+          new_quantity: row.new_quantity,
+          used_quantity: row.used_quantity,
           damaged_quantity: row.damaged_quantity,
           missing_quantity: row.missing_quantity,
           notes: row.notes || null
@@ -586,6 +596,8 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
             .from('inventory')
             .update({
               quantity: stockPayload.quantity,
+              new_quantity: stockPayload.new_quantity,
+              used_quantity: stockPayload.used_quantity,
               damaged_quantity: stockPayload.damaged_quantity,
               missing_quantity: stockPayload.missing_quantity,
               notes: stockPayload.notes,
@@ -603,6 +615,8 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
 
         const changed = !oldStock ||
           Number(oldStock.quantity) !== row.quantity ||
+          Number(oldStock.new_quantity || 0) !== row.new_quantity ||
+          Number(oldStock.used_quantity || 0) !== row.used_quantity ||
           Number(oldStock.damaged_quantity) !== row.damaged_quantity ||
           Number(oldStock.missing_quantity) !== row.missing_quantity
         if (changed) {
@@ -617,7 +631,7 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
               equipment_id: equipment.id,
               movement_type: oldStock ? 'adjustment' : 'addition',
               quantity: movementQuantity,
-              notes: 'استيراد ملف - رصيد جديد: ' + row.quantity + '، تالف: ' + row.damaged_quantity + '، مفقود: ' + row.missing_quantity,
+              notes: 'استيراد ملف - إجمالي: ' + row.quantity + '، جديد: ' + row.new_quantity + '، مستعمل: ' + row.used_quantity + '، تالف: ' + row.damaged_quantity + '، مفقود: ' + row.missing_quantity,
               created_by: profile.id
             })
             if (movementError) movementWarnings += 1
@@ -685,12 +699,12 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
             <div className="excel-preview-heading"><div><h4>معاينة البيانات</h4><p>يتم استيراد الصفوف السليمة فقط.</p></div><button className="button button-light" type="button" onClick={reset}>إلغاء الملف</button></div>
             <div className="excel-table-wrap">
               <table>
-                <thead><tr><th>صف المصدر</th><th>اسم الصنف</th><th>الكود</th><th>التصنيف</th><th>الكمية</th><th>التالف</th><th>المفقود</th><th>النتيجة</th></tr></thead>
+                <thead><tr><th>صف المصدر</th><th>اسم الصنف</th><th>الكود</th><th>التصنيف</th><th>الإجمالي</th><th>الجديد</th><th>المستعمل</th><th>التالف</th><th>المفقود</th><th>النتيجة</th></tr></thead>
                 <tbody>
                   {rows.slice(0, 150).map(row => (
                     <tr key={row.sourceRow} className={row.errors.length ? 'invalid' : ''}>
                       <td>{row.sourceRow}</td><td>{row.item_name || '—'}</td><td>{row.item_code || 'تلقائي'}</td><td>{row.category || '—'}</td>
-                      <td>{Number.isInteger(row.quantity) ? row.quantity : '—'}</td><td>{row.damaged_quantity}</td><td>{row.missing_quantity}</td>
+                      <td>{Number.isInteger(row.quantity) ? row.quantity : '—'}</td><td>{row.new_quantity}</td><td>{row.used_quantity}</td><td>{row.damaged_quantity}</td><td>{row.missing_quantity}</td>
                       <td>{row.errors.length ? <span className="excel-row-error">{row.errors.join('، ')}</span> : <span className="excel-row-ok">سليم</span>}</td>
                     </tr>
                   ))}
