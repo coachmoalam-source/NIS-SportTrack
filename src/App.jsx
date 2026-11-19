@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Activity, AlertTriangle, Wrench, ArrowDownToLine, ArrowUpFromLine, Boxes,
   Building2, CheckCircle2, ChevronDown, CircleUserRound, ClipboardList,
