@@ -883,3 +883,204 @@ body{background:var(--nis-paper);color:var(--nis-ink)}
   .app-shell .branch-shortcut-copy strong{font-size:9px!important}
   .app-shell .dashboard-hero-copy h2{font-size:18px!important}
 }
+
+
+/* =========================================================
+   NIS SPORTTRACK — PREMIUM DESIGN SYSTEM v1
+   Safe visual layer: keeps existing React flows and Supabase logic.
+   ========================================================= */
+:root{
+  --st-navy:#071a33;--st-navy-2:#0d2b50;--st-blue:#173d66;
+  --st-gold:#d9ad55;--st-gold-light:#f5e4b9;--st-ink:#142b45;
+  --st-muted:#718198;--st-line:#e3e9f0;--st-surface:#fff;
+}
+html,body,#root{min-height:100%;background:#f3f6fa}
+body{color:var(--st-ink);font-family:'Cairo',Tahoma,sans-serif}
+button{transition:transform .18s ease,box-shadow .18s ease,background .18s ease,border-color .18s ease}
+.app-shell{background:linear-gradient(135deg,#f5f7fa 0%,#edf2f7 100%);min-height:100vh}
+.app-shell .sidebar{
+  width:268px;padding:27px 18px 20px;position:sticky;top:0;height:100vh;overflow-y:auto;
+  background:linear-gradient(180deg,#06172e 0%,#0a2444 56%,#102f54 100%)!important;
+  border:0!important;border-right:1px solid #244260!important;border-left:0!important;
+  box-shadow:12px 0 36px rgba(5,20,42,.08);
+}
+.app-shell .brand{padding:0 8px 30px;border-bottom:1px solid rgba(210,225,242,.13);margin-bottom:22px}
+.app-shell .brand-mark{width:48px;height:48px;border-radius:15px;background:linear-gradient(145deg,#f8df9c,#c89436)!important;color:#071a33!important;box-shadow:0 8px 22px #d7a94b30}
+.app-shell .brand strong{font-size:17px;letter-spacing:.1px}
+.app-shell .brand small{color:#aebfd2;font-size:10px}
+.app-shell .side-label{font-size:10px;letter-spacing:1.4px;color:#8197b0;padding:0 12px 13px}
+.app-shell .nav-item{min-height:45px;padding:11px 13px;margin-bottom:6px;border:1px solid transparent;color:#c4d1df;border-radius:12px;font-size:12px;transition:.2s}
+.app-shell .nav-item:hover{background:#153657;color:#fff;border-color:#294b6c;transform:translateX(-2px)}
+.app-shell .nav-item.active{background:linear-gradient(105deg,#b88632,#e4c16e)!important;color:#10233d!important;border:1px solid #f4d992!important;box-shadow:0 7px 18px #c99c4530;font-weight:800}
+.app-shell .sidebar-bottom{border-color:#29445f;color:#aabbd0;padding-top:18px}
+.app-shell .main-content{padding:30px clamp(18px,3vw,46px);max-width:1900px;margin:0 auto;width:100%}
+.app-shell .topbar{border-bottom:1px solid #dce4ed;padding:0 0 20px;gap:18px}
+.app-shell .topbar h1{font-size:clamp(19px,2vw,25px);letter-spacing:-.4px;color:#0a2242}
+.app-shell .eyebrow{color:#a57a2d;letter-spacing:1.8px;font-size:10px}
+.app-shell .user-area{gap:12px}
+.app-shell .avatar{width:42px;height:42px;background:#fff7e7;color:#9b7027;border:1px solid #efdfbc}
+.app-shell .user-copy strong{font-size:12px;color:#142b45}
+.app-shell .user-copy small{font-size:10px}
+.app-shell .icon-button{background:#fff;border:1px solid #e1e7ee;color:#53677d;width:38px;height:38px}
+.app-shell .welcome-row{margin:25px 0 19px;gap:15px}
+.app-shell .welcome-row h2{font-size:19px;color:#0b2344}
+.app-shell .welcome-row p{font-size:12px;line-height:1.8;color:#7b899b}
+.app-shell .button{border-radius:11px;min-height:42px;padding:10px 16px;font-size:12px}
+.app-shell .button-primary{background:linear-gradient(110deg,#c18e36,#e4c36f)!important;color:#10233d!important;box-shadow:0 7px 18px #bd913b30!important;border:1px solid #f1d58e!important}
+.app-shell .button-primary:hover{background:linear-gradient(110deg,#d3a34a,#f0d58f)!important;transform:translateY(-1px)}
+.app-shell .button-light{background:#fff!important;color:#304965!important;border:1px solid #dce4ed!important}
+.app-shell .button-light:hover{border-color:#c49a4b!important;background:#fffaf0!important}
+.app-shell .dashboard-hero{
+  position:relative;isolation:isolate;overflow:hidden;min-height:220px;
+  padding:34px 38px!important;border-radius:23px!important;margin:0 0 20px!important;
+  border:1px solid #274a70!important;border-bottom:3px solid #d7ae5b!important;
+  background:radial-gradient(ellipse at 78% 18%,rgba(57,103,151,.42),transparent 38%),linear-gradient(112deg,#06172e 0%,#0b2749 58%,#163c65 100%)!important;
+  box-shadow:0 18px 42px rgba(8,29,55,.14)!important;
+}
+.app-shell .dashboard-hero:after{content:"";position:absolute;z-index:-1;width:380px;height:380px;border:1px solid rgba(232,195,112,.18);border-radius:50%;right:9%;top:-230px;box-shadow:0 0 0 32px rgba(232,195,112,.035),0 0 0 68px rgba(232,195,112,.025)}
+.app-shell .dashboard-hero-copy{max-width:760px}
+.app-shell .dashboard-hero-kicker{color:#e7c879;font-size:10px;font-weight:800;letter-spacing:2px}
+.app-shell .dashboard-hero-copy h2{font-size:clamp(22px,2.4vw,31px);line-height:1.45;color:#fff;margin:10px 0}
+.app-shell .dashboard-hero-copy p{font-size:12px;color:#c0cede;line-height:2;max-width:690px}
+.app-shell .dashboard-hero-meta{gap:18px;margin-top:18px}
+.app-shell .dashboard-hero-meta span{color:#e1e9f2;font-size:10px}
+.app-shell .dashboard-hero-meta svg{color:#e2bd69}
+.app-shell .dashboard-hero-mark{opacity:.88}
+.app-shell .hero-mark-ring{border-color:#d6b25f;color:#e6c879}
+.app-shell .stats-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:13px!important;margin:0 0 20px}
+.app-shell .stat-card,.app-shell .stat-card:last-child{
+  max-width:none!important;width:100%;grid-column:auto;min-height:116px;padding:18px!important;
+  border-radius:17px!important;background:linear-gradient(145deg,#fff,#f8fafc)!important;
+  border:1px solid #e0e7ef!important;box-shadow:0 8px 22px rgba(14,39,69,.055)!important;
+  gap:12px;justify-content:flex-start;position:relative;overflow:hidden
+}
+.app-shell .stat-card:after{content:"";position:absolute;right:-28px;bottom:-46px;width:105px;height:105px;border:1px solid #e8edf3;border-radius:50%}
+.app-shell .stat-card:hover{transform:translateY(-3px);box-shadow:0 13px 28px rgba(14,39,69,.10)!important;border-color:#d6bd86!important}
+.app-shell .stat-card span{font-size:10px;color:#7a899b}
+.app-shell .stat-card strong{font-size:25px;color:#0b2344;font-weight:800}
+.app-shell .stat-icon{width:45px;height:45px;border-radius:14px;background:#edf3fa!important;color:#183d66!important;border:1px solid #dfe8f2}
+.app-shell .stat-icon.warning{background:#fff6e3!important;color:#ad7b25!important;border-color:#f0dfb8}
+.app-shell .stat-icon.danger{background:#fff0f1!important;color:#b12c43!important;border-color:#f1d6dc}
+.app-shell .branch-shortcuts{margin:0 0 20px;padding:21px!important;border-radius:19px!important;background:linear-gradient(145deg,#fff,#f8fafc)!important;border:1px solid #dfe6ee!important;border-top:3px solid #d4a84f!important;box-shadow:0 9px 24px rgba(14,39,69,.05)!important}
+.app-shell .branch-shortcuts-heading{align-items:center;margin-bottom:17px}
+.app-shell .branch-shortcuts-heading h3{font-size:17px;color:#0a2344}
+.app-shell .branch-shortcuts-heading p{font-size:11px;color:#74849a}
+.app-shell .branch-shortcuts-grid{grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:11px}
+.app-shell .branch-shortcut{min-height:74px;padding:12px 14px;border-radius:14px;background:#fff;border:1px solid #dce5ee}
+.app-shell .branch-shortcut-copy strong{font-size:12px;color:#142e4c}
+.app-shell .branch-shortcut.active{background:linear-gradient(115deg,#092344,#173e67)!important;border:1px solid #d6b35f!important;box-shadow:0 8px 20px rgba(9,35,68,.16)}
+.app-shell .branch-shortcut.active .branch-shortcut-copy strong{color:#fff}
+.app-shell .panel{padding:22px!important;border-radius:19px!important;background:#fff!important;border:1px solid #e0e7ef!important;box-shadow:0 10px 28px rgba(14,39,69,.055)!important}
+.app-shell .panel-heading{padding-bottom:17px;margin-bottom:0;border-bottom:1px solid #edf0f4!important}
+.app-shell .panel-heading h3{font-size:16px;color:#0b2344}
+.app-shell .panel-heading p{font-size:11px;color:#7b899a}
+.app-shell .filters{gap:11px;margin:19px 0 14px}
+.app-shell .search-box,.app-shell .select-wrap{height:47px;border-radius:12px!important;background:#fbfcfe!important;border:1px solid #dce4ed!important;padding:0 14px}
+.app-shell .search-box:focus-within,.app-shell .select-wrap:focus-within{border-color:#c39a4b!important;box-shadow:0 0 0 3px #e8d8b64d}
+.app-shell .search-box input,.app-shell .select-wrap select{font-size:12px;color:#193552}
+.app-shell .inventory-tool-group{gap:9px}
+.app-shell .inventory-table-tools{margin:12px 0 14px;align-items:center}
+.app-shell .table-result-count{font-size:10px;color:#7d8b9c}
+.app-shell .table-wrap{border:1px solid #dce5ef!important;border-radius:15px!important;overflow:auto;box-shadow:inset 0 1px #fff}
+.app-shell table{border-spacing:0}
+.app-shell th{background:#0b2344!important;color:#f0d58f!important;border-color:#244363!important;padding:15px 13px!important;font-size:10px}
+.app-shell td{background:#fff!important;color:#455a71!important;border-color:#edf1f5!important;padding:14px 13px!important;font-size:11px}
+.app-shell tbody tr:nth-child(even) td{background:#f8fafc!important}
+.app-shell tbody tr:hover td{background:#f1f6fc!important}
+.app-shell .item-cell strong{color:#132d4a!important;font-size:12px}
+.app-shell .item-cell small{color:#8492a3!important}
+.app-shell .numeric{color:#183a60!important}
+.app-shell .number-pill.warning{background:#fff5df!important;color:#a87517!important;border-color:#eddbb5}
+.app-shell .number-pill.danger{background:#fff0f1!important;color:#b12c43!important;border-color:#f0d6dc}
+.app-shell .available{color:#21805d!important}
+.app-shell .small-action{background:#eef3f8;color:#254767}
+.app-shell .danger-action{background:#fff0f1;color:#b12c43}
+.app-shell .table-footer{color:#7c8b9e}
+.app-shell .footer{color:#8290a0}
+.app-shell .alert-error{background:#fff2f1;color:#a52b37;border:1px solid #f0d1d5}
+.app-shell .alert-success{background:#eef8f2;color:#26744e;border:1px solid #d1eadb}
+
+/* Real-photo category tiles — sourced by each category label */
+.app-shell .sport-category-showcase{margin:0 0 20px;padding:21px;border:1px solid #dfe6ee;border-radius:19px;background:#fff;box-shadow:0 9px 24px rgba(14,39,69,.045)}
+.app-shell .sport-category-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}
+.app-shell .sport-category-heading h3{margin:4px 0;color:#0b2344;font-size:17px}
+.app-shell .sport-category-heading p{margin:0;color:#78879a;font-size:11px}
+.app-shell .category-count{padding:7px 11px;border-radius:30px;background:#f6f0e2;color:#98712b;font-size:10px;font-weight:800}
+.app-shell .sport-category-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px}
+.app-shell .sport-category-card{position:relative;isolation:isolate;overflow:hidden;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:5px;min-height:145px;padding:14px;border:1px solid #dce4ed;border-radius:15px;background:#102b4b var(--category-image) center/cover no-repeat;color:#fff;text-align:start;box-shadow:0 5px 15px rgba(8,28,52,.08)}
+.app-shell .sport-category-card:before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(5,20,39,.12),rgba(5,20,39,.88))}
+.app-shell .sport-category-card:hover{transform:translateY(-3px);box-shadow:0 12px 24px rgba(8,28,52,.18)}
+.app-shell .sport-category-card.selected{outline:3px solid #d5ad5c;outline-offset:2px}
+.app-shell .sport-category-emoji{font-size:24px;filter:drop-shadow(0 2px 4px #0008)}
+.app-shell .sport-category-card strong{font-size:13px;color:#fff}
+.app-shell .sport-category-card small{display:flex;align-items:center;gap:4px;color:#e7d8b5;font-size:10px}
+.app-shell .category-reset{margin-top:12px;border:0;background:transparent;color:#9b742d;font-size:11px;font-weight:800;padding:5px}
+.app-shell .login-screen{background:radial-gradient(circle at 12% 12%,#24466c 0,transparent 30%),linear-gradient(135deg,#06172e,#0b2b4d)!important;gap:0;padding:0}
+.app-shell .login-card{border-radius:22px;box-shadow:0 25px 70px rgba(0,0,0,.2)}
+.app-shell .modal{border-radius:20px}
+
+/* Mobile: app-like navigation, stacked content and touch-friendly branch selectors */
+@media(max-width:760px){
+  .app-shell{display:flex!important;flex-direction:column!important;overflow-x:hidden}
+  .app-shell .sidebar{position:relative;top:auto;height:auto;width:100%;display:flex!important;flex-direction:row;align-items:center;gap:6px;overflow-x:auto;overflow-y:hidden;padding:10px 12px!important;border:0!important;border-bottom:2px solid #d5ad5c!important;box-shadow:0 7px 20px rgba(5,20,42,.12)}
+  .app-shell .brand{flex:0 0 auto;display:flex!important;gap:8px;padding:0 12px 0 0!important;margin:0 5px 0 0!important;border:0!important;border-left:1px solid #29445f!important;min-width:145px}
+  .app-shell .brand-mark{width:35px!important;height:35px!important;border-radius:10px!important}
+  .app-shell .brand strong{font-size:12px!important}
+  .app-shell .brand small{font-size:8px!important}
+  .app-shell .side-label,.app-shell .sidebar-bottom{display:none!important}
+  .app-shell .sidebar .nav-item{flex:0 0 auto;display:flex!important;min-height:38px!important;width:auto!important;margin:0!important;padding:8px 10px!important;border-radius:10px!important;font-size:10px!important;white-space:nowrap;background:#102c4d!important;border:1px solid #2a4766!important;color:#dce5ef!important}
+  .app-shell .sidebar .nav-item.active{background:linear-gradient(110deg,#c18e36,#e4c36f)!important;color:#10233d!important;border-color:#f1d58e!important}
+  .app-shell .main-content{padding:14px 12px 25px!important;width:100%!important;max-width:100%!important}
+  .app-shell .topbar{padding:4px 1px 13px!important;align-items:flex-start!important}
+  .app-shell .topbar h1{font-size:16px!important;line-height:1.5!important}
+  .app-shell .eyebrow{font-size:8px!important}
+  .app-shell .user-copy{display:none!important}
+  .app-shell .avatar{width:35px!important;height:35px!important}
+  .app-shell .welcome-row{margin:16px 0 13px!important;align-items:flex-start!important}
+  .app-shell .welcome-row h2{font-size:15px!important}
+  .app-shell .welcome-row p{font-size:10px!important;line-height:1.7}
+  .app-shell .welcome-row>.button{min-height:38px;padding:8px 10px;font-size:10px;white-space:nowrap}
+  .app-shell .dashboard-hero{min-height:0!important;padding:21px 16px!important;border-radius:17px!important;margin-bottom:13px!important}
+  .app-shell .dashboard-hero-copy h2{font-size:20px!important}
+  .app-shell .dashboard-hero-copy p{font-size:10px!important;line-height:1.8}
+  .app-shell .dashboard-hero-mark{display:none!important}
+  .app-shell .dashboard-hero-meta{gap:8px 12px;flex-wrap:wrap}
+  .app-shell .dashboard-hero-meta span{font-size:9px}
+  .app-shell .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;margin-bottom:13px}
+  .app-shell .stat-card,.app-shell .stat-card:last-child{min-height:83px!important;padding:10px!important;gap:8px!important;grid-column:auto!important}
+  .app-shell .stat-card:last-child{grid-column:1/-1!important;max-width:calc(50% - 4px)!important;justify-self:center}
+  .app-shell .stat-card span{font-size:9px!important}
+  .app-shell .stat-card strong{font-size:19px!important}
+  .app-shell .stat-icon{width:35px!important;height:35px!important;flex:0 0 35px;border-radius:10px!important}
+  .app-shell .branch-shortcuts{padding:13px!important;margin-bottom:13px!important;border-radius:15px!important}
+  .app-shell .branch-shortcuts-heading h3,.app-shell .sport-category-heading h3{font-size:14px!important}
+  .app-shell .branch-shortcuts-heading p,.app-shell .sport-category-heading p{font-size:10px!important;line-height:1.6}
+  .app-shell .branch-shortcuts-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}
+  .app-shell .branch-shortcut{min-height:56px!important;padding:8px!important;gap:6px!important}
+  .app-shell .branch-shortcut-icon{width:31px!important;height:31px!important;flex-basis:31px!important}
+  .app-shell .branch-shortcut-copy strong{font-size:10px!important}
+  .app-shell .branch-shortcut-copy small{font-size:8px!important}
+  .app-shell .sport-category-showcase{padding:13px!important;margin-bottom:13px!important;border-radius:15px!important}
+  .app-shell .sport-category-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+  .app-shell .sport-category-card{min-height:115px!important;padding:10px!important;border-radius:12px!important}
+  .app-shell .sport-category-card strong{font-size:11px!important}
+  .app-shell .panel{padding:13px!important;border-radius:15px!important}
+  .app-shell .panel-heading{gap:8px}
+  .app-shell .panel-heading h3{font-size:13px!important}
+  .app-shell .panel-heading p{font-size:9px!important}
+  .app-shell .panel-heading .button{min-height:36px;padding:7px 9px;font-size:9px}
+  .app-shell .filters{display:flex;flex-direction:column;gap:8px;margin:13px 0}
+  .app-shell .search-box,.app-shell .select-wrap{width:100%;min-height:43px;height:43px}
+  .app-shell .inventory-table-tools{display:flex;flex-direction:column;align-items:stretch;gap:9px}
+  .app-shell .inventory-tool-group{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .app-shell .inventory-tool-group .button{font-size:9px;padding:8px 7px}
+  .app-shell .table-wrap{border-radius:11px!important}
+  .app-shell th,.app-shell td{padding:11px 9px!important}
+}
+@media(max-width:390px){
+  .app-shell .main-content{padding-inline:9px!important}
+  .app-shell .brand{min-width:130px}
+  .app-shell .brand small{display:none}
+  .app-shell .sidebar .nav-item{font-size:9px!important;padding:7px 8px!important}
+  .app-shell .stat-card:last-child{max-width:calc(50% - 4px)!important}
+}
