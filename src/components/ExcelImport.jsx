@@ -66,8 +66,8 @@ function findHeaderRow(sheet, resolveHeader) {
   const max = Math.min(sheet.rowCount, 10)
   for (let rowNumber = 1; rowNumber <= max; rowNumber += 1) {
     const row = sheet.getRow(rowNumber)
-    const headers = row.values.slice(1).map(normalizeHeader)
-    const mapped = headers.map(header => resolveHeader(header))
+    const rawHeaders = row.values.slice(1).map(value => String(value || '').trim())
+    const mapped = rawHeaders.map(header => resolveHeader(header))
     if (mapped.includes('item_name') && mapped.includes('quantity')) {
       return { rowNumber, headers: mapped }
     }
@@ -87,7 +87,11 @@ async function parseWorkbook(file, resolveHeader) {
     const source = sheet.getRow(rowNumber)
     const values = {}
     header.headers.forEach((field, index) => {
-      if (field) values[field] = cellText(source.getCell(index + 1))
+      if (!field) return
+      const rawHeader = String(source.getCell(index + 1).value || '').trim()
+      const value = cellText(source.getCell(index + 1))
+      if (normalizeHeader(rawHeader) === 'used') values.used_tools = value
+      else values[field] = value
     })
     if (!Object.values(values).some(value => String(value || '').trim())) continue
     rows.push({
@@ -99,7 +103,10 @@ async function parseWorkbook(file, resolveHeader) {
       damaged_quantity: values.damaged_quantity ? asInteger(values.damaged_quantity) : 0,
       missing_quantity: values.missing_quantity ? asInteger(values.missing_quantity) : 0,
       unit: String(values.unit || 'قطعة').trim() || 'قطعة',
-      notes: String(values.notes || '').trim()
+      notes: [
+        String(values.notes || '').trim(),
+        values.used_tools ? 'الأدوات المستخدمة: ' + String(values.used_tools).trim() : ''
+      ].filter(Boolean).join(' | ')
     })
   }
   if (!rows.length) throw new Error('لا توجد صفوف بيانات أسفل العناوين.')
@@ -139,7 +146,11 @@ async function parseWordDocument(file, resolveHeader) {
     for (let index = headerIndex + 1; index < matrix.length; index += 1) {
       const values = {}
       headers.forEach((field, columnIndex) => {
-        if (field) values[field] = matrix[index][columnIndex] || ''
+        if (!field) return
+        const rawHeader = matrix[headerIndex][columnIndex] || ''
+        const value = matrix[index][columnIndex] || ''
+        if (normalizeHeader(rawHeader) === 'used') values.used_tools = value
+        else values[field] = value
       })
       if (!Object.values(values).some(value => String(value || '').trim())) continue
       rows.push({
@@ -151,7 +162,10 @@ async function parseWordDocument(file, resolveHeader) {
         damaged_quantity: values.damaged_quantity ? asInteger(values.damaged_quantity) : 0,
         missing_quantity: values.missing_quantity ? asInteger(values.missing_quantity) : 0,
         unit: String(values.unit || 'قطعة').trim() || 'قطعة',
-        notes: String(values.notes || '').trim()
+        notes: [
+          String(values.notes || '').trim(),
+          values.used_tools ? 'الأدوات المستخدمة: ' + String(values.used_tools).trim() : ''
+        ].filter(Boolean).join(' | ')
       })
     }
   }
@@ -255,7 +269,8 @@ async function parsePdf(file, resolveHeader) {
       headerIndex = i
       headerAnchors = lines[i].parts.map(part => ({
         xRatio: part.x / lines[i].pageWidth,
-        field: resolveHeader(part.text) || null
+        label: part.text,
+        field: normalizeHeader(part.text) === 'used' ? 'used_tools' : (resolveHeader(part.text) || null)
       }))
       break
     }
@@ -274,6 +289,7 @@ async function parsePdf(file, resolveHeader) {
 
   const rows = []
   let lastBaseName = ''
+  let pendingItemName = ''
 
   for (let i = headerIndex + 1; i < lines.length; i += 1) {
     const line = lines[i]
@@ -305,14 +321,17 @@ async function parsePdf(file, resolveHeader) {
     let itemName = String(cells.item_name || '').trim()
     const quantityRaw = String(cells.quantity || '').trim()
     const notesRaw = String(cells.notes || '').trim()
-    if (!itemName && !quantityRaw && !notesRaw) continue
+    const usedToolsRaw = String(cells.used_tools || '').trim()
+    if (!itemName && !quantityRaw && !notesRaw && !usedToolsRaw) continue
 
     if (itemName && !quantityRaw) {
-      if (rows.length) {
-        rows[rows.length - 1].item_name = (rows[rows.length - 1].item_name + ' ' + itemName).trim()
-        lastBaseName = rows[rows.length - 1].item_name
-      }
+      pendingItemName = (pendingItemName + ' ' + itemName).trim()
       continue
+    }
+
+    if (pendingItemName) {
+      itemName = (pendingItemName + ' ' + itemName).trim()
+      pendingItemName = ''
     }
 
     const parsedQuantity = parsePdfQuantity(quantityRaw)
@@ -332,6 +351,7 @@ async function parsePdf(file, resolveHeader) {
 
     const rowNotes = []
     if (notesRaw) rowNotes.push(notesRaw)
+    if (usedToolsRaw) rowNotes.push('الأدوات المستخدمة: ' + usedToolsRaw)
     if (parsedQuantity?.ratio) {
       rowNotes.push('العدد في الملف: ' + parsedQuantity.source + '؛ المفقود المحسوب من النسبة: ' + parsedQuantity.inferredMissing)
     }
