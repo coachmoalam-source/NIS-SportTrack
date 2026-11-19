@@ -13,3 +13,33 @@
 .excel-branch-bottom-fixed{background:#fff!important;border:2px solid #e5b83f!important;padding:14px!important;opacity:1!important}
 .excel-branch-bottom-fixed span{color:#42536b!important;font-weight:700!important}
 .excel-branch-bottom-fixed strong{color:#102747!important;font-size:17px!important;font-weight:800!important}
+
+
+/* High-contrast branch selector labels on both sides of the import preview */
+.excel-import-card > .excel-field,
+.excel-import-card > .excel-field > span,
+.excel-import-card > .excel-branch-fixed,
+.excel-branch-confirm,
+.excel-branch-confirm-title,
+.excel-branch-confirm-title strong,
+.excel-branch-confirm-title > span,
+.excel-branch-bottom-field,
+.excel-branch-bottom-field > span,
+.excel-branch-bottom-field .excel-branch-select-label,
+.excel-branch-bottom-fixed,
+.excel-branch-bottom-fixed span,
+.excel-branch-bottom-fixed strong {
+  color: #111111 !important;
+  opacity: 1 !important;
+}
+.excel-import-card > .excel-field select,
+.excel-branch-bottom-field select,
+.excel-branch-bottom-field select option {
+  color: #111111 !important;
+  background-color: #ffffff !important;
+  opacity: 1 !important;
+}
+.excel-branch-confirm-title strong { font-size: 17px !important; font-weight: 800 !important; }
+.excel-branch-confirm-title > span { font-size: 14px !important; font-weight: 600 !important; }
+.excel-branch-bottom-field > span,
+.excel-import-card > .excel-field > span { font-size: 16px !important; font-weight: 800 !important; }
