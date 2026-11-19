@@ -272,7 +272,7 @@ async function parsePdf(file, resolveHeader) {
       headerAnchors = lines[i].parts.map(part => ({
         xRatio: part.x / lines[i].pageWidth,
         label: part.text,
-        field: normalizeHeader(part.text) === 'used' ? 'used_tools' : (resolveHeader(part.text) || null)
+        field: resolveHeader(part.text) || null
       }))
       break
     }
@@ -323,8 +323,7 @@ async function parsePdf(file, resolveHeader) {
     let itemName = String(cells.item_name || '').trim()
     const quantityRaw = String(cells.quantity || '').trim()
     const notesRaw = String(cells.notes || '').trim()
-    const usedToolsRaw = String(cells.used_tools || '').trim()
-    if (!itemName && !quantityRaw && !notesRaw && !usedToolsRaw) continue
+    if (!itemName && !quantityRaw && !notesRaw) continue
 
     if (itemName && !quantityRaw) {
       pendingItemName = (pendingItemName + ' ' + itemName).trim()
@@ -353,7 +352,6 @@ async function parsePdf(file, resolveHeader) {
 
     const rowNotes = []
     if (notesRaw) rowNotes.push(notesRaw)
-    if (usedToolsRaw) rowNotes.push('الأدوات المستخدمة: ' + usedToolsRaw)
     if (parsedQuantity?.ratio) {
       rowNotes.push('العدد في الملف: ' + parsedQuantity.source + '؛ المفقود المحسوب من النسبة: ' + parsedQuantity.inferredMissing)
     }
@@ -397,7 +395,11 @@ function validateRows(rows) {
     if (!row.item_code && row.item_name && seenNames.has(duplicateKey)) errors.push('اسم مكرر داخل الملف بدون كود')
     if (row.item_code) seenCodes.add(duplicateKey)
     else if (row.item_name) seenNames.add(duplicateKey)
-    return { ...row, errors }
+    const conditionTotal = row.new_quantity + row.used_quantity + row.damaged_quantity
+    const warnings = Number.isInteger(row.quantity) && conditionTotal !== row.quantity
+      ? ['مجموع الجديد والمستعمل والتالف (' + conditionTotal + ') لا يساوي الإجمالي (' + row.quantity + ')']
+      : []
+    return { ...row, errors, warnings }
   })
 }
 
@@ -705,7 +707,7 @@ export default function ExcelImport({ profile, branches, isCentral, canManage, o
                     <tr key={row.sourceRow} className={row.errors.length ? 'invalid' : ''}>
                       <td>{row.sourceRow}</td><td>{row.item_name || '—'}</td><td>{row.item_code || 'تلقائي'}</td><td>{row.category || '—'}</td>
                       <td>{Number.isInteger(row.quantity) ? row.quantity : '—'}</td><td>{row.new_quantity}</td><td>{row.used_quantity}</td><td>{row.damaged_quantity}</td><td>{row.missing_quantity}</td>
-                      <td>{row.errors.length ? <span className="excel-row-error">{row.errors.join('، ')}</span> : <span className="excel-row-ok">سليم</span>}</td>
+                      <td>{row.errors.length ? <span className="excel-row-error">{row.errors.join('، ')}</span> : row.warnings?.length ? <span className="excel-row-error">{row.warnings.join('، ')}</span> : <span className="excel-row-ok">سليم</span>}</td>
                     </tr>
                   ))}
                 </tbody>
