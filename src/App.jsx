@@ -620,6 +620,53 @@ function App() {
           <div className="dashboard-hero-mark"><div className="hero-mark-ring"><Boxes size={44}/></div><strong>NIS</strong><small>SPORTTRACK</small><i>MANAGE • TRACK • EXCEL</i></div>
           <div className="dashboard-hero-glow"/>
         </section>}
+        {activeSection === 'inventory' && categories.length > 0 && <section className="sport-category-showcase">
+          <div className="sport-category-heading">
+            <div><span className="branch-shortcuts-kicker">SPORTS EQUIPMENT LIBRARY</span><h3>{t('تصفح الأدوات حسب الرياضة','Explore equipment by sport')}</h3><p>{t('اختَر التصنيف للوصول السريع إلى أدواته.','Choose a category to filter its equipment.')}</p></div>
+            <span className="category-count">{categories.length} {t('تصنيف','categories')}</span>
+          </div>
+          <div className="sport-category-grid">
+            {categories.map((category, index) => {
+              const key = String(category).toLowerCase()
+              const categoryItems = items.filter(item => item.category === category)
+              const sportItem = categoryItems.find(item => getSportPrefix(item.item_name))
+              const sportPrefix = getSportPrefix(sportItem?.item_name || '')
+              const visuals = {
+                FB: ['⚽','https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=700&q=85'],
+                B: ['🏀','https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=700&q=85'],
+                T: ['🎾','https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=700&q=85'],
+                S: ['🏊','https://images.unsplash.com/photo-1530549387789-4c1017266635?auto=format&fit=crop&w=700&q=85'],
+                V: ['🏐','https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?auto=format&fit=crop&w=700&q=85'],
+                FI: ['🏋️','https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=700&q=85'],
+                BA: ['🏸','https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=700&q=85'],
+                HO: ['🏑','https://images.unsplash.com/photo-1580748141549-71748dbe0f2b?auto=format&fit=crop&w=700&q=85'],
+                P: ['🎾','https://images.unsplash.com/photo-1622279457486-62ffb9a6e6e7?auto=format&fit=crop&w=700&q=85'],
+                C: ['💪','https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=700&q=85'],
+                G: ['🤸','https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=700&q=85'],
+                A: ['🏃','https://images.unsplash.com/photo-1533561052604-c3beb6d55b8d?auto=format&fit=crop&w=700&q=85']
+              }
+              const fallbackVisuals = [
+                ['⚽','https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=700&q=85'],
+                ['🏀','https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=700&q=85'],
+                ['🎾','https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=700&q=85'],
+                ['🏊','https://images.unsplash.com/photo-1530549387789-4c1017266635?auto=format&fit=crop&w=700&q=85'],
+                ['🏐','https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?auto=format&fit=crop&w=700&q=85'],
+                ['🏋️','https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=700&q=85']
+              ]
+              const nameVisual = key.includes('football') || key.includes('قدم') ? visuals.FB :
+                key.includes('basket') || key.includes('سلة') ? visuals.B :
+                key.includes('tennis') || key.includes('تنس') ? visuals.T :
+                key.includes('swim') || key.includes('سباح') ? visuals.S :
+                key.includes('volley') || key.includes('طائرة') ? visuals.V :
+                key.includes('fitness') || key.includes('لياق') || key.includes('gym') ? visuals.FI : null
+              const visual = (sportPrefix && visuals[sportPrefix]) || nameVisual || fallbackVisuals[index % fallbackVisuals.length]
+              return <button type="button" key={category} className={categoryFilter === category ? 'sport-category-card selected' : 'sport-category-card'} onClick={() => setCategoryFilter(category)} style={{'--category-image': 'url("' + visual[1] + '")'}}>
+                <span className="sport-category-overlay"/><span className="sport-category-emoji">{visual[0]}</span><strong>{category}</strong><small>{t('عرض الأدوات','View equipment')} <ChevronRight size={13}/></small>
+              </button>
+            })}
+          </div>
+          {categoryFilter !== 'all' && <button className="category-reset" type="button" onClick={() => setCategoryFilter('all')}>{t('عرض كل التصنيفات ×','Show all categories ×')}</button>}
+        </section>}
         {error && <div className="alert alert-error"><AlertTriangle size={18}/>{error}<button onClick={() => setError('')}><X size={16}/></button></div>}
         {notice && <div className="alert alert-success"><CheckCircle2 size={18}/>{notice}<button onClick={() => setNotice('')}><X size={16}/></button></div>}
 
