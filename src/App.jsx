@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Activity, AlertTriangle, Wrench, ArrowDownToLine, ArrowUpFromLine, Boxes,
   Building2, CheckCircle2, ChevronDown, CircleUserRound, ClipboardList,
   LogOut, Package, Plus, RefreshCw, Search, ShieldCheck, Trash2, X, Download, Printer, SlidersHorizontal, ArrowUpDown
 } from 'lucide-react'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
+import { getCategoryArtwork } from './categoryImages'
 import PeriodicAudits from './components/PeriodicAudits'
 import DamageMaintenance from './components/DamageMaintenance'
 import BranchComparison from './components/BranchComparison'
@@ -79,6 +80,7 @@ function App() {
   const [inventoryFocus, setInventoryFocus] = useState('all')
   const [visibleColumns, setVisibleColumns] = useState(['item','branch','category','quantity','damaged','missing','available','updated'])
   const [sortConfig, setSortConfig] = useState({ key: 'item_name', direction: 'asc' })
+  const loadRequestSeq = useRef(0)
 
   useEffect(() => {
     const syncLanguage = () => setLanguage(localStorage.getItem('nis-language') || 'ar')
@@ -100,12 +102,14 @@ function App() {
 
   const loadData = useCallback(async (activeSession = session, requestedPage = page, requestedBranch = branchFilter, requestedSearch = '') => {
     if (!activeSession || !supabase) return
+    const requestId = ++loadRequestSeq.current
     setLoading(true)
     setError('')
     const [profileResult, branchResult] = await Promise.all([
       supabase.from('profiles').select('id, full_name, role, branch_id').eq('id', activeSession.user.id).single(),
       supabase.from('branches').select('id, name').order('name')
     ])
+    if (requestId !== loadRequestSeq.current) return
     if (profileResult.error) {
       setError('لم يتم العثور على ملف المستخدم. راجع جدول profiles وصلاحية المستخدم في قاعدة البيانات.')
       setLoading(false)
@@ -114,6 +118,7 @@ function App() {
     if (branchResult.error) setError(branchResult.error.message)
     setProfile(profileResult.data)
     setBranches(branchResult.data || [])
+    if (!['super_admin', 'executive_admin'].includes(profileResult.data.role) && profileResult.data.branch_id) setBranchFilter(profileResult.data.branch_id)
     let query = supabase.from('inventory')
       .select('id, branch_id, quantity, damaged_quantity, missing_quantity, notes, updated_at, branches!inventory_branch_id_fkey(name), equipment!inventory_equipment_id_fkey(id, name, item_code, photo_url, unit, categories!equipment_category_id_fkey(name))', { count: 'exact' })
       .order('updated_at', { ascending: false })
@@ -165,6 +170,7 @@ function App() {
       if (!batch || batch.length < 1000 || totalsRows.length >= totalsCount) break
       totalsPage += 1
     }
+    if (requestId !== loadRequestSeq.current) return
     if (totalsError) {
       setError(totalsError.message)
     } else {
@@ -182,6 +188,7 @@ function App() {
     }
 
     const { data, error: itemsError, count } = await query
+    if (requestId !== loadRequestSeq.current) return
     if (itemsError) {
       setError(itemsError.message)
       setLoading(false)
@@ -195,8 +202,10 @@ function App() {
         const { data: signed } = await supabase.storage.from('nis-sporttrack-evidence').createSignedUrl(path, 3600)
         displayPhoto = signed?.signedUrl || ''
       }
-      return { ...row, item_name: row.equipment?.name || 'صنف غير معروف', item_code: row.equipment?.item_code || '', category: row.equipment?.categories?.name || row.equipment?.custom_category || '', image_url: displayPhoto, photo_storage_value: storedPhoto, unit: row.equipment?.unit || 'قطعة', equipment_id: row.equipment?.id }
+      const category = row.equipment?.categories?.name || row.equipment?.custom_category || ''
+      return { ...row, item_name: row.equipment?.name || 'صنف غير معروف', item_code: row.equipment?.item_code || '', category, image_url: displayPhoto || getCategoryArtwork(category), is_category_art: !displayPhoto, photo_storage_value: storedPhoto, unit: row.equipment?.unit || 'قطعة', equipment_id: row.equipment?.id }
     }))
+    if (requestId !== loadRequestSeq.current) return
     setItems(mappedItems)
     setTotalRows(count || 0)
     setHasMore((requestedPage + 1) * PAGE_SIZE < (count || 0))
@@ -538,6 +547,21 @@ function App() {
           {activeSection === 'inventory' && <button className="button button-primary" onClick={openNew} disabled={!canManage}><Plus size={18}/> {t('إضافة صنف جديد','Add New Item')}</button>}
         </section>
 
+        {activeSection === 'inventory' && <section className="branch-tabs panel" aria-label="اختيار فرع المخزون">
+          <div className="branch-tabs-heading">
+            <div><span className="branch-tabs-kicker">NIS • BRANCHES</span><h3>{t('اختر الفرع','Choose a branch')}</h3><p>{t('كل مفتاح يعرض مخزون الفرع المحدد فقط.','Each tab shows inventory for the selected branch only.')}</p></div>
+            <span className="branch-tabs-count">{canViewAllBranches ? branches.length : (ownBranchId ? 1 : 0)} {t('فروع','branches')}</span>
+          </div>
+          <div className="branch-tabs-list">
+            {canViewAllBranches && <button type="button" aria-pressed={branchFilter === 'all'} className={branchFilter === 'all' ? 'branch-tab active' : 'branch-tab'} onClick={() => { setBranchFilter('all'); setPage(0); setCategoryFilter('all'); setInventoryFocus('all'); loadData(session, 0, 'all', search) }}>
+              <span className="branch-tab-symbol"><Boxes size={19}/></span><span>{t('كل الفروع','All Branches')}</span>
+            </button>}
+            {(canViewAllBranches ? branches : branches.filter(branch => branch.id === ownBranchId)).map(branch => <button type="button" key={branch.id} aria-pressed={(canViewAllBranches ? branchFilter : ownBranchId) === branch.id} className={(canViewAllBranches ? branchFilter : ownBranchId) === branch.id ? 'branch-tab active' : 'branch-tab'} onClick={() => { const nextBranch = canViewAllBranches ? branch.id : ownBranchId; setBranchFilter(nextBranch); setPage(0); setCategoryFilter('all'); setInventoryFocus('all'); loadData(session, 0, nextBranch, search) }}>
+              <span className="branch-tab-symbol"><Building2 size={19}/></span><span>{branch.name}</span>
+            </button>)}
+          </div>
+        </section>}
+
         {activeSection === 'inventory' && <section className="dashboard-hero">
           <div className="dashboard-hero-copy">
             <span className="dashboard-hero-kicker">{t('NIS • إدارة الأدوات الرياضية','NIS • SPORTS EQUIPMENT MANAGEMENT')}</span>
@@ -592,7 +616,7 @@ function App() {
                 {loading ? <tr><td colSpan={inventoryColumnDefs.filter(col=>isColumnVisible(col.key)).length+1} className="empty-state">جاري تحميل البيانات...</td></tr> :
                   sortedFilteredItems.length === 0 ? <tr><td colSpan={inventoryColumnDefs.filter(col=>isColumnVisible(col.key)).length+1} className="empty-state"><Package size={28}/><strong>لا توجد أصناف لعرضها</strong><span>ابدأ بإضافة أول صنف إلى سجل المخزون.</span></td></tr> :
                   sortedFilteredItems.map(item => <tr key={item.id}>
-                    {isColumnVisible('item') && <td><div className="item-cell">{item.image_url ? <img src={item.image_url} alt="" onError={e => {e.currentTarget.style.display='none'}}/> : <div className="item-placeholder"><Package size={18}/></div>}<div><strong>{item.item_name}</strong><small>{item.item_code || 'بدون كود'}</small></div></div></td>}
+                    {isColumnVisible('item') && <td><div className="item-cell">{item.image_url ? <img className={item.is_category_art ? 'category-art-thumb' : ''} src={item.image_url} alt={item.category || item.item_name} onError={e => {e.currentTarget.style.display='none'}}/> : <div className="item-placeholder"><Package size={18}/></div>}<div><strong>{item.item_name}</strong><small>{item.item_code || 'بدون كود'}</small></div></div></td>}
                     {canViewAllBranches && isColumnVisible('branch') && <td>{item.branches?.name || '—'}</td>}
                     {isColumnVisible('category') && <td>{item.category || '—'}</td>}
                     {isColumnVisible('quantity') && <td className="numeric">{item.quantity} {item.unit}</td>}
