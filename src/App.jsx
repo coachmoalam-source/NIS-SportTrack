@@ -16,15 +16,21 @@ const BRANCHES = ['El Shorouk', 'O West', 'New Capital', 'El Tagamoa', 'Porto Sa
 const emptyForm = { item_code: '', item_name: '', category: '', quantity: 0, damaged_quantity: 0, missing_quantity: 0, unit: 'قطعة', image_url: '', notes: '' }
 const number = value => Number(value || 0)
 const normalizeCategory = value => {
-  const raw = String(value || '').trim().toLowerCase().replace(/[._-]+/g, ' ').replace(/\\s+/g, ' ')
+  const raw = String(value || '')
+    .normalize('NFKC')
+    .trim()
+    .toLowerCase()
+    .replace(/^category\\s*:\\s*/i, '')
+    .replace(/[._-]+/g, ' ')
+    .replace(/\\s+/g, ' ')
   if (!raw) return ''
-  if (['individual games','individual game','single game','single games','single','فردي','العاب فردية','ألعاب فردية','العاب فرديه','ألعاب فرديه'].includes(raw)) return 'Individual Games'
-  if (['group games','group game','team games','team game','team','جماعي','العاب جماعية','ألعاب جماعية','العاب جماعيه','ألعاب جماعيه'].includes(raw)) return 'Group Games'
-  if (['fitness jumping rope','fitness jump rope','jumping rope','لياقة نط الحبل','نط الحبل'].includes(raw)) return 'Fitness & Jump Rope'
-  if (['crossfit','cross fit','كروس فيت'].includes(raw)) return 'CrossFit'
+  const compact = raw.replace(/\\s/g, '')
+  if (/(individual|single|فردي|فرديه|فردية)/i.test(raw) || compact.includes('العابفرد')) return 'Individual Games'
+  if (/(group|team|جماعي|جماعيه|جماعية)/i.test(raw) || compact.includes('الالعابالجماعي')) return 'Group Games'
+  if (/(fitness.*jump|jump.*rope|نط.*الحبل)/i.test(raw)) return 'Fitness & Jump Rope'
+  if (/cross\\s*fit|كروس\\s*فيت/i.test(raw)) return 'CrossFit'
   return raw.replace(/\\b\\w/g, letter => letter.toUpperCase())
 }
-
 const SPORT_CODES = [
   { prefix: 'AF', words: ['american football', 'كرة القدم الأمريكية', 'امريكية'] },
   { prefix: 'HY', words: ['hyrox', 'هايروكس'] },
