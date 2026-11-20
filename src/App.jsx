@@ -15,6 +15,15 @@ import ExcelImport from './components/ExcelImport'
 const BRANCHES = ['El Shorouk', 'O West', 'New Capital', 'El Tagamoa', 'Porto Said']
 const emptyForm = { item_code: '', item_name: '', category: '', quantity: 0, damaged_quantity: 0, missing_quantity: 0, unit: 'قطعة', image_url: '', notes: '' }
 const number = value => Number(value || 0)
+const normalizeCategory = value => {
+  const raw = String(value || '').trim().toLowerCase().replace(/[._-]+/g, ' ').replace(/\\s+/g, ' ')
+  if (!raw) return ''
+  if (['individual games','individual game','single game','single games','single','فردي','العاب فردية','ألعاب فردية','العاب فرديه','ألعاب فرديه'].includes(raw)) return 'Individual Games'
+  if (['group games','group game','team games','team game','team','جماعي','العاب جماعية','ألعاب جماعية','العاب جماعيه','ألعاب جماعيه'].includes(raw)) return 'Group Games'
+  if (['fitness jumping rope','fitness jump rope','jumping rope','لياقة نط الحبل','نط الحبل'].includes(raw)) return 'Fitness & Jump Rope'
+  if (['crossfit','cross fit','كروس فيت'].includes(raw)) return 'CrossFit'
+  return raw.replace(/\\b\\w/g, letter => letter.toUpperCase())
+}
 
 const SPORT_CODES = [
   { prefix: 'AF', words: ['american football', 'كرة القدم الأمريكية', 'امريكية'] },
@@ -255,7 +264,7 @@ function App() {
     const matchesSearch = !term || [item.item_name, item.item_code, item.category, item.branches?.name]
       .some(value => String(value || '').toLowerCase().includes(term))
     const matchesBranch = branchFilter === 'all' || item.branch_id === branchFilter
-    const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter
+    const matchesCategory = categoryFilter === 'all' || normalizeCategory(item.category) === categoryFilter
     const available = Math.max(0, number(item.quantity) - number(item.damaged_quantity) - number(item.missing_quantity))
     const matchesFocus = inventoryFocus === 'all' || (inventoryFocus === 'damaged' && number(item.damaged_quantity) > 0) || (inventoryFocus === 'missing' && number(item.missing_quantity) > 0) || (inventoryFocus === 'available' && available > 0)
     return matchesSearch && matchesBranch && matchesCategory && matchesFocus
@@ -312,7 +321,7 @@ function App() {
         offset += batchSize
       }
       const filtered = exportRows.filter(item => {
-        const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter
+        const matchesCategory = categoryFilter === 'all' || normalizeCategory(item.category) === categoryFilter
         const available = Math.max(0, number(item.quantity) - number(item.damaged_quantity) - number(item.missing_quantity))
         const matchesFocus = inventoryFocus === 'all' ||
           (inventoryFocus === 'damaged' && number(item.damaged_quantity) > 0) ||
@@ -368,7 +377,7 @@ function App() {
     window.print()
   }
 
-  const categories = [...new Set(items.map(item => item.category).filter(Boolean))]
+  const categories = [...new Set(items.map(item => normalizeCategory(item.category)).filter(Boolean))].sort((a, b) => a.localeCompare(b))
 
   useEffect(() => {
     if (!modalOpen || editing || (!isCentral && profile?.role !== 'branch_manager')) {
@@ -642,7 +651,7 @@ function App() {
           <div className="sport-category-grid">
             {categories.map((category, index) => {
               const key = String(category).toLowerCase()
-              const categoryItems = items.filter(item => item.category === category)
+              const categoryItems = items.filter(item => normalizeCategory(item.category) === category)
               const sportItem = categoryItems.find(item => getSportPrefix(item.item_name))
               const sportPrefix = getSportPrefix(sportItem?.item_name || '')
               const visuals = {
