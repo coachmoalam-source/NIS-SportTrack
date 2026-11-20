@@ -374,14 +374,83 @@ function App() {
     }
   }
 
-  const printInventory = async () => {
-    const images = Array.from(document.querySelectorAll('.inventory-data-table .item-cell img'))
-    await Promise.all(images.map(img => {
-      if (img.complete && img.naturalWidth > 0) return Promise.resolve()
-      if (typeof img.decode === 'function') return img.decode().catch(() => undefined)
-      return new Promise(resolve => { img.onload = resolve; img.onerror = resolve })
-    }))
-    window.print()
+  const printInventory = () => {
+    // Open synchronously from the button click so mobile browsers do not block the print report.
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) {
+      setError('اسمح بفتح النوافذ المنبثقة لطباعة التقرير.')
+      return
+    }
+    const escapePrint = value => String(value ?? '—').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]))
+    const reportTitle = branchFilter === 'all'
+      ? 'تقرير مخزون الأدوات الرياضية – جميع الفروع'
+      : 'تقرير مخزون الأدوات الرياضية – ' + (branches.find(branch => branch.id === branchFilter)?.name || 'الفرع المحدد')
+    const totalQuantity = sortedFilteredItems.reduce((sum, item) => sum + number(item.quantity), 0)
+    const totalDamaged = sortedFilteredItems.reduce((sum, item) => sum + number(item.damaged_quantity), 0)
+    const totalMissing = sortedFilteredItems.reduce((sum, item) => sum + number(item.missing_quantity), 0)
+    const totalAvailable = sortedFilteredItems.reduce((sum, item) => sum + Math.max(0, number(item.quantity) - number(item.damaged_quantity) - number(item.missing_quantity)), 0)
+    const cards = sortedFilteredItems.map(item => {
+      const available = Math.max(0, number(item.quantity) - number(item.damaged_quantity) - number(item.missing_quantity))
+      return `<article class="item">
+        <div class="top">
+          <div class="photo">${item.image_url ? '<img src="' + escapePrint(item.image_url) + '" alt="">' : '<span>بدون صورة</span>'}</div>
+          <div class="name"><strong>${escapePrint(item.item_name)}</strong><small>كود الصنف: ${escapePrint(item.item_code)} · ${escapePrint(item.category)}</small></div>
+          <div class="qty"><small>الكمية الإجمالية</small><b>${number(item.quantity)} ${escapePrint(item.unit || 'قطعة')}</b></div>
+        </div>
+        <div class="grid">
+          ${canViewAllBranches ? '<div><small>الفرع</small><b>' + escapePrint(item.branches?.name || '—') + '</b></div>' : ''}
+          <div><small>التصنيف</small><b>${escapePrint(item.category)}</b></div>
+          <div><small>التالف</small><b>${number(item.damaged_quantity)}</b></div>
+          <div><small>المفقود</small><b>${number(item.missing_quantity)}</b></div>
+          <div><small>المتاح</small><b class="available">${available}</b></div>
+          <div><small>الوحدة</small><b>${escapePrint(item.unit || 'قطعة')}</b></div>
+          <div><small>آخر تحديث</small><b>${escapePrint(formatDate(item.updated_at))}</b></div>
+        </div>
+        <div class="notes"><b>ملاحظات:</b> ${escapePrint(item.notes || 'لا توجد ملاحظات مسجلة')}</div>
+      </article>`
+    }).join('')
+    printWindow.document.open()
+    printWindow.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapePrint(reportTitle)}</title><style>
+      *{box-sizing:border-box}
+      html,body{margin:0;padding:0;width:100%;background:#fff;color:#172033;font-family:Arial,Tahoma,sans-serif}
+      body{font-size:10pt;line-height:1.4}
+      main{width:100%;padding:0}
+      header{display:flex;justify-content:space-between;gap:5mm;align-items:flex-start;border-bottom:2px solid #bd974d;padding-bottom:4mm;margin-bottom:4mm}
+      header h1{font-size:16pt;margin:2mm 0;color:#102849}
+      .brand{font-size:8pt;color:#98732f;font-weight:bold;letter-spacing:.5px}
+      .meta{text-align:left;font-size:8pt;color:#647084;line-height:1.7}
+      .summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2mm;margin:3mm 0 5mm}
+      .metric{border:1px solid #d4dbe4;border-radius:2mm;padding:2mm;text-align:center;min-width:0}
+      .metric span{display:block;font-size:8pt;color:#667085}.metric b{display:block;font-size:13pt;color:#102849;margin-top:1mm}
+      .items{display:block;width:100%}
+      .item{border:1px solid #cbd3df;border-radius:2mm;padding:3mm;margin:0 0 3mm;width:100%;break-inside:avoid;page-break-inside:avoid}
+      .top{display:flex;align-items:center;gap:3mm;padding-bottom:2mm;margin-bottom:2mm;border-bottom:1px solid #e4e8ee;min-width:0}
+      .photo{width:16mm;height:16mm;flex:0 0 16mm;border:1px solid #e1e6ed;border-radius:1mm;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:7pt;color:#718096}
+      .photo img{width:100%;height:100%;object-fit:contain}
+      .name{flex:1;min-width:0;overflow-wrap:anywhere}.name strong{font-size:11pt;color:#102849}.name small{display:block;font-size:8pt;color:#687385;margin-top:1mm}
+      .qty{text-align:center;border-right:1px solid #e1e6ed;padding-right:3mm;min-width:25mm}.qty small{display:block;font-size:7pt;color:#667085}.qty b{font-size:12pt;color:#102849}
+      .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1.5mm}
+      .grid div{min-width:0;padding:1.5mm;background:#f5f7fa;border:1px solid #e3e8ef;border-radius:1mm;overflow-wrap:anywhere}
+      .grid small{display:block;font-size:7pt;color:#687385;margin-bottom:.5mm}.grid b{font-size:8.5pt}
+      .available{color:#17633d}.notes{font-size:8pt;margin-top:2mm;overflow-wrap:anywhere}
+      footer{border-top:1px solid #d5dce5;padding-top:2mm;margin-top:4mm;color:#687385;font-size:7pt;display:flex;justify-content:space-between}
+      @page{size:A4 portrait;margin:9mm}
+      @media print{html,body{width:auto!important;margin:0!important;padding:0!important}.item{break-inside:avoid;page-break-inside:avoid}img{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+    </style></head><body><main>
+      <header><div><div class="brand">NIS SPORTTRACK · PHYSICAL EDUCATION DEPARTMENT</div><h1>${escapePrint(reportTitle)}</h1><div>كشف تفصيلي بالأصناف والكميات وحالة المخزون</div></div>
+      <div class="meta">تاريخ الطباعة: ${escapePrint(new Date().toLocaleString('ar-EG'))}<br>عدد الأصناف في هذا الكشف: ${sortedFilteredItems.length}</div></header>
+      <section class="summary">
+        <div class="metric"><span>إجمالي الكمية</span><b>${totalQuantity}</b></div>
+        <div class="metric"><span>المتاح</span><b>${totalAvailable}</b></div>
+        <div class="metric"><span>التالف</span><b>${totalDamaged}</b></div>
+        <div class="metric"><span>المفقود</span><b>${totalMissing}</b></div>
+      </section>
+      <section class="items">${cards || '<p>لا توجد أصناف مطابقة.</p>'}</section>
+      <footer><span>NIS SportTrack – Physical Education Department</span><span>البيانات المعروضة حسب الفلاتر الحالية</span></footer>
+    </main><script>
+      window.onload=()=>{const imgs=[...document.images];Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(resolve=>{img.onload=resolve;img.onerror=resolve}))).then(()=>{window.focus();window.print()})}
+    </script></body></html>`)
+    printWindow.document.close()
   }
 
   const categories = [...new Set(items.map(item => normalizeCategory(item.category)).filter(Boolean))].sort((a, b) => a.localeCompare(b))
