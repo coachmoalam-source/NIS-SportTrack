@@ -148,30 +148,47 @@ export default function InventoryReports({ branches, onError }) {
       </article>`).join('')
     printWindow.document.open()
     printWindow.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)}</title><style>
-      *{box-sizing:border-box}html,body{margin:0;padding:0}body{font-family:Arial,Tahoma,sans-serif;color:#172033;font-size:11px;padding:12mm}
-      .header{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border-bottom:3px solid #c49a45;padding-bottom:12px}
-      .brand{font-size:10px;font-weight:bold;color:#a27a2c;letter-spacing:1px}.header h1{font-size:19px;margin:7px 0}.meta{color:#5d6878;line-height:1.8;text-align:left;white-space:nowrap}
-      h2{font-size:14px;margin:16px 0 8px;color:#102849}
-      .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:12px 0}
-      .metric{border:1px solid #cbd3df;border-radius:6px;padding:7px;text-align:center}.metric span{display:block;color:#667085;font-size:9px}.metric b{display:block;font-size:15px;margin-top:3px;color:#102849}
-      table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:8px}th,td{border:1px solid #c7ced8;padding:5px 3px;text-align:center;overflow-wrap:anywhere}
-      th{background:#102849;color:#fff}tbody tr:nth-child(even){background:#f4f6f9}
-      .items-heading{margin-top:18px;padding-top:10px;border-top:2px solid #d5dce5}
-      .item-card{border:1px solid #bfc9d7;border-radius:7px;padding:9px;margin:0 0 9px;break-inside:avoid;page-break-inside:avoid}
-      .item-head{display:flex;align-items:center;gap:9px;border-bottom:1px solid #e1e6ed;padding-bottom:7px;margin-bottom:7px}
-      .photo{width:54px;height:54px;flex:0 0 54px;border:1px solid #e0e5ec;border-radius:5px;display:flex;align-items:center;justify-content:center;color:#7a8492;font-size:8px}
-      .photo img{width:100%;height:100%;object-fit:contain}.item-title{flex:1;min-width:0}.item-title b{font-size:13px;color:#102849}.item-title small{display:block;color:#667085;margin-top:4px}
-      .item-total{text-align:center;border-right:1px solid #e1e6ed;padding-right:8px}.item-total small{display:block;color:#667085;font-size:8px}.item-total strong{font-size:15px;color:#102849}
-      .details-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
-      .details-grid div{background:#f5f7fa;border:1px solid #e3e8ef;border-radius:4px;padding:5px;min-width:0}
-      .details-grid span{display:block;color:#667085;font-size:8px;margin-bottom:3px}.details-grid b{font-size:10px;overflow-wrap:anywhere}
-      .available{color:#17633d}.description,.notes{margin-top:6px;line-height:1.5;overflow-wrap:anywhere}.updated{font-size:8px;color:#687385;margin-top:5px}
-      .footer{margin-top:12px;padding-top:7px;border-top:1px solid #cbd3df;color:#687385;display:flex;justify-content:space-between}
-      @page{size:A4 portrait;margin:10mm}
-      thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}
+      /* Print canvas: let the printer define the usable A4 area; never add a second page margin. */
+      *{box-sizing:border-box}
+      html,body{margin:0!important;padding:0!important;width:100%!important;min-width:0!important;background:#fff!important}
+      body{font-family:Arial,Tahoma,sans-serif;color:#172033;font-size:10pt;line-height:1.35}
+      .report{width:100%;max-width:100%;margin:0;padding:0;overflow:visible}
+      .header{display:flex;justify-content:space-between;gap:5mm;align-items:flex-start;border-bottom:2px solid #c49a45;padding:0 0 4mm;margin:0 0 4mm;width:100%;min-width:0}
+      .header>div:first-child{min-width:0;flex:1}
+      .brand{font-size:8pt;font-weight:bold;color:#a27a2c;letter-spacing:.5px}.header h1{font-size:16pt;line-height:1.25;margin:2mm 0}.meta{color:#5d6878;line-height:1.6;text-align:left;white-space:normal;max-width:42%;font-size:8pt}
+      h2{font-size:12pt;margin:5mm 0 2mm;color:#102849;break-after:avoid}
+      .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2mm;margin:3mm 0;width:100%}
+      .metric{border:1px solid #cbd3df;border-radius:2mm;padding:2mm;text-align:center;min-width:0}
+      .metric span{display:block;color:#667085;font-size:7.5pt}.metric b{display:block;font-size:12pt;margin-top:1mm;color:#102849}
+      table{width:100%;max-width:100%;border-collapse:collapse;table-layout:fixed;font-size:7pt}
+      th,td{border:1px solid #c7ced8;padding:1.5mm 1mm;text-align:center;overflow-wrap:anywhere;word-break:normal}
+      th{background:#102849!important;color:#fff!important}tbody tr:nth-child(even){background:#f4f6f9!important}
+      .summary-section{width:100%;max-width:100%;break-inside:avoid;page-break-inside:avoid}
+      .items-heading{margin-top:5mm;padding-top:3mm;border-top:1px solid #d5dce5}
+      .item-card{display:block;width:100%;max-width:100%;border:1px solid #bfc9d7;border-radius:2mm;padding:3mm;margin:0 0 3mm;overflow:visible;break-inside:auto;page-break-inside:auto}
+      .item-head{display:flex;align-items:center;gap:3mm;border-bottom:1px solid #e1e6ed;padding-bottom:2mm;margin-bottom:2mm;min-width:0;break-inside:avoid;page-break-inside:avoid}
+      .photo{width:15mm;height:15mm;flex:0 0 15mm;border:1px solid #e0e5ec;border-radius:1mm;display:flex;align-items:center;justify-content:center;color:#7a8492;font-size:6pt;overflow:hidden}
+      .photo img{width:100%;height:100%;object-fit:contain}
+      .item-title{flex:1;min-width:0;overflow-wrap:anywhere}.item-title b{font-size:11pt;color:#102849}.item-title small{display:block;color:#667085;margin-top:1mm;font-size:7.5pt;overflow-wrap:anywhere}
+      .item-total{text-align:center;border-right:1px solid #e1e6ed;padding-right:3mm;min-width:24mm}.item-total small{display:block;color:#667085;font-size:7pt}.item-total strong{font-size:12pt;color:#102849}
+      .details-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1.5mm;width:100%;break-inside:avoid;page-break-inside:avoid}
+      .details-grid div{background:#f5f7fa!important;border:1px solid #e3e8ef;border-radius:1mm;padding:1.5mm;min-width:0;overflow-wrap:anywhere}
+      .details-grid span{display:block;color:#667085;font-size:7pt;margin-bottom:.5mm}.details-grid b{font-size:8.5pt;overflow-wrap:anywhere}
+      .available{color:#17633d}.description,.notes{margin-top:2mm;line-height:1.4;overflow-wrap:anywhere;word-break:normal}.updated{font-size:7pt;color:#687385;margin-top:1.5mm}
+      .footer{margin-top:4mm;padding-top:2mm;border-top:1px solid #cbd3df;color:#687385;display:flex;justify-content:space-between;gap:3mm;font-size:7pt}
+      @page{size:A4 portrait;margin:8mm}
+      thead{display:table-header-group}
       img{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-      @media print{body{padding:0}.header,.metrics,.summary-section{break-inside:avoid;page-break-inside:avoid}}
-    </style></head><body>
+      @media print{
+        html,body{width:auto!important;height:auto!important;overflow:visible!important}
+        body{margin:0!important;padding:0!important}
+        .report{width:100%!important;max-width:100%!important;padding:0!important;margin:0!important}
+        .header,.metrics,.summary-section{break-inside:avoid;page-break-inside:avoid}
+        .item-card{break-inside:auto;page-break-inside:auto}
+        .item-head,.details-grid{break-inside:avoid;page-break-inside:avoid}
+        *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      }
+    </style></head><body><main class="report">
       <header class="header"><div><div class="brand">NIS SPORTTRACK · PHYSICAL EDUCATION DEPARTMENT</div><h1>${escapeHtml(title)}</h1><div>كشف كامل بتفاصيل الأصناف والكميات وحالة المخزون</div></div>
       <div class="meta">تاريخ الطباعة: ${escapeHtml(new Date().toLocaleString('ar-EG'))}<br>عدد السجلات: ${visibleRows.length}<br>النطاق: ${branchId === 'all' ? 'جميع الفروع' : 'الفرع المحدد'}</div></header>
       <div class="metrics">${metrics}</div>${branchSummary}
@@ -179,7 +196,7 @@ export default function InventoryReports({ branches, onError }) {
       ${itemCards || '<p>لا توجد بيانات مطابقة.</p>'}
       <div class="footer"><span>NIS SportTrack – Physical Education Department</span><span>التقرير يعرض البيانات المسجلة وقت الطباعة</span></div>
       <script>window.onload=()=>{const imgs=[...document.images];Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(resolve=>{img.onload=resolve;img.onerror=resolve}))).then(()=>{window.focus();window.print()})}</script>
-    </body></html>`)
+    </main></body></html>`)
     printWindow.document.close()
   }
 
