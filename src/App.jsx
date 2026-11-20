@@ -375,12 +375,12 @@ function App() {
   }
 
   const printInventory = () => {
-    // Open synchronously from the button click so mobile browsers do not block the print report.
-    const printWindow = window.open('', '_blank')
-    if (!printWindow) {
-      setError('اسمح بفتح النوافذ المنبثقة لطباعة التقرير.')
-      return
-    }
+    // Print inside the current tab. This avoids popup blockers in Android and in-app browsers.
+    const existing = document.getElementById('nis-inventory-print-root')
+    if (existing) existing.remove()
+    const existingStyle = document.getElementById('nis-inventory-print-style')
+    if (existingStyle) existingStyle.remove()
+
     const escapePrint = value => String(value ?? '—').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]))
     const reportTitle = branchFilter === 'all'
       ? 'تقرير مخزون الأدوات الرياضية – جميع الفروع'
@@ -409,35 +409,48 @@ function App() {
         <div class="notes"><b>ملاحظات:</b> ${escapePrint(item.notes || 'لا توجد ملاحظات مسجلة')}</div>
       </article>`
     }).join('')
-    printWindow.document.open()
-    printWindow.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapePrint(reportTitle)}</title><style>
-      *{box-sizing:border-box}
-      html,body{margin:0;padding:0;width:100%;background:#fff;color:#172033;font-family:Arial,Tahoma,sans-serif}
-      body{font-size:10pt;line-height:1.4}
-      main{width:100%;padding:0}
-      header{display:flex;justify-content:space-between;gap:5mm;align-items:flex-start;border-bottom:2px solid #bd974d;padding-bottom:4mm;margin-bottom:4mm}
-      header h1{font-size:16pt;margin:2mm 0;color:#102849}
-      .brand{font-size:8pt;color:#98732f;font-weight:bold;letter-spacing:.5px}
-      .meta{text-align:left;font-size:8pt;color:#647084;line-height:1.7}
-      .summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2mm;margin:3mm 0 5mm}
-      .metric{border:1px solid #d4dbe4;border-radius:2mm;padding:2mm;text-align:center;min-width:0}
-      .metric span{display:block;font-size:8pt;color:#667085}.metric b{display:block;font-size:13pt;color:#102849;margin-top:1mm}
-      .items{display:block;width:100%}
-      .item{border:1px solid #cbd3df;border-radius:2mm;padding:3mm;margin:0 0 3mm;width:100%;break-inside:avoid;page-break-inside:avoid}
-      .top{display:flex;align-items:center;gap:3mm;padding-bottom:2mm;margin-bottom:2mm;border-bottom:1px solid #e4e8ee;min-width:0}
-      .photo{width:16mm;height:16mm;flex:0 0 16mm;border:1px solid #e1e6ed;border-radius:1mm;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:7pt;color:#718096}
-      .photo img{width:100%;height:100%;object-fit:contain}
-      .name{flex:1;min-width:0;overflow-wrap:anywhere}.name strong{font-size:11pt;color:#102849}.name small{display:block;font-size:8pt;color:#687385;margin-top:1mm}
-      .qty{text-align:center;border-right:1px solid #e1e6ed;padding-right:3mm;min-width:25mm}.qty small{display:block;font-size:7pt;color:#667085}.qty b{font-size:12pt;color:#102849}
-      .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1.5mm}
-      .grid div{min-width:0;padding:1.5mm;background:#f5f7fa;border:1px solid #e3e8ef;border-radius:1mm;overflow-wrap:anywhere}
-      .grid small{display:block;font-size:7pt;color:#687385;margin-bottom:.5mm}.grid b{font-size:8.5pt}
-      .available{color:#17633d}.notes{font-size:8pt;margin-top:2mm;overflow-wrap:anywhere}
-      footer{border-top:1px solid #d5dce5;padding-top:2mm;margin-top:4mm;color:#687385;font-size:7pt;display:flex;justify-content:space-between}
+
+    const style = document.createElement('style')
+    style.id = 'nis-inventory-print-style'
+    style.textContent = `
+      #nis-inventory-print-root{display:none}
       @page{size:A4 portrait;margin:9mm}
-      @media print{html,body{width:auto!important;margin:0!important;padding:0!important}.item{break-inside:avoid;page-break-inside:avoid}img{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
-    </style></head><body><main>
-      <header><div><div class="brand">NIS SPORTTRACK · PHYSICAL EDUCATION DEPARTMENT</div><h1>${escapePrint(reportTitle)}</h1><div>كشف تفصيلي بالأصناف والكميات وحالة المخزون</div></div>
+      @media print{
+        html,body{margin:0!important;padding:0!important;width:auto!important;height:auto!important;background:#fff!important}
+        body>*:not(#nis-inventory-print-root){display:none!important}
+        #nis-inventory-print-root{display:block!important;width:100%!important;color:#172033!important;background:#fff!important;font-family:Arial,Tahoma,sans-serif!important;font-size:10pt!important;line-height:1.4!important;direction:rtl!important}
+        #nis-inventory-print-root *{box-sizing:border-box!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+        #nis-inventory-print-root header{display:flex!important;justify-content:space-between!important;gap:5mm!important;align-items:flex-start!important;border-bottom:2px solid #bd974d!important;padding-bottom:4mm!important;margin-bottom:4mm!important}
+        #nis-inventory-print-root header h1{font-size:16pt!important;margin:2mm 0!important;color:#102849!important}
+        #nis-inventory-print-root .brand{font-size:8pt!important;color:#98732f!important;font-weight:bold!important}
+        #nis-inventory-print-root .meta{text-align:left!important;font-size:8pt!important;color:#647084!important;line-height:1.7!important}
+        #nis-inventory-print-root .summary{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:2mm!important;margin:3mm 0 5mm!important}
+        #nis-inventory-print-root .metric{border:1px solid #d4dbe4!important;border-radius:2mm!important;padding:2mm!important;text-align:center!important;min-width:0!important}
+        #nis-inventory-print-root .metric span{display:block!important;font-size:8pt!important;color:#667085!important}
+        #nis-inventory-print-root .metric b{display:block!important;font-size:13pt!important;color:#102849!important;margin-top:1mm!important}
+        #nis-inventory-print-root .item{display:block!important;border:1px solid #cbd3df!important;border-radius:2mm!important;padding:3mm!important;margin:0 0 3mm!important;width:100%!important;break-inside:avoid!important;page-break-inside:avoid!important}
+        #nis-inventory-print-root .top{display:flex!important;align-items:center!important;gap:3mm!important;padding-bottom:2mm!important;margin-bottom:2mm!important;border-bottom:1px solid #e4e8ee!important;min-width:0!important}
+        #nis-inventory-print-root .photo{width:16mm!important;height:16mm!important;flex:0 0 16mm!important;border:1px solid #e1e6ed!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;font-size:7pt!important}
+        #nis-inventory-print-root .photo img{width:100%!important;height:100%!important;object-fit:contain!important}
+        #nis-inventory-print-root .name{flex:1!important;min-width:0!important;overflow-wrap:anywhere!important}
+        #nis-inventory-print-root .name strong{font-size:11pt!important;color:#102849!important}
+        #nis-inventory-print-root .name small{display:block!important;font-size:8pt!important;color:#687385!important;margin-top:1mm!important}
+        #nis-inventory-print-root .qty{text-align:center!important;border-right:1px solid #e1e6ed!important;padding-right:3mm!important;min-width:25mm!important}
+        #nis-inventory-print-root .qty small{display:block!important;font-size:7pt!important;color:#667085!important}
+        #nis-inventory-print-root .qty b{font-size:12pt!important;color:#102849!important}
+        #nis-inventory-print-root .grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:1.5mm!important}
+        #nis-inventory-print-root .grid div{min-width:0!important;padding:1.5mm!important;background:#f5f7fa!important;border:1px solid #e3e8ef!important;overflow-wrap:anywhere!important}
+        #nis-inventory-print-root .grid small{display:block!important;font-size:7pt!important;color:#687385!important;margin-bottom:.5mm!important}
+        #nis-inventory-print-root .grid b{font-size:8.5pt!important}
+        #nis-inventory-print-root .available{color:#17633d!important}
+        #nis-inventory-print-root .notes{font-size:8pt!important;margin-top:2mm!important;overflow-wrap:anywhere!important}
+        #nis-inventory-print-root footer{border-top:1px solid #d5dce5!important;padding-top:2mm!important;margin-top:4mm!important;color:#687385!important;font-size:7pt!important;display:flex!important;justify-content:space-between!important}
+      }
+    `
+    const root = document.createElement('div')
+    root.id = 'nis-inventory-print-root'
+    root.dir = 'rtl'
+    root.innerHTML = `<header><div><div class="brand">NIS SPORTTRACK · PHYSICAL EDUCATION DEPARTMENT</div><h1>${escapePrint(reportTitle)}</h1><div>كشف تفصيلي بالأصناف والكميات وحالة المخزون</div></div>
       <div class="meta">تاريخ الطباعة: ${escapePrint(new Date().toLocaleString('ar-EG'))}<br>عدد الأصناف في هذا الكشف: ${sortedFilteredItems.length}</div></header>
       <section class="summary">
         <div class="metric"><span>إجمالي الكمية</span><b>${totalQuantity}</b></div>
@@ -446,11 +459,22 @@ function App() {
         <div class="metric"><span>المفقود</span><b>${totalMissing}</b></div>
       </section>
       <section class="items">${cards || '<p>لا توجد أصناف مطابقة.</p>'}</section>
-      <footer><span>NIS SportTrack – Physical Education Department</span><span>البيانات المعروضة حسب الفلاتر الحالية</span></footer>
-    </main><script>
-      window.onload=()=>{const imgs=[...document.images];Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(resolve=>{img.onload=resolve;img.onerror=resolve}))).then(()=>{window.focus();window.print()})}
-    </script></body></html>`)
-    printWindow.document.close()
+      <footer><span>NIS SportTrack – Physical Education Department</span><span>البيانات المعروضة حسب الفلاتر الحالية</span></footer>`
+    document.head.appendChild(style)
+    document.body.appendChild(root)
+    const cleanup = () => {
+      root.remove()
+      style.remove()
+      window.removeEventListener('afterprint', cleanup)
+    }
+    window.addEventListener('afterprint', cleanup)
+    const images = [...root.querySelectorAll('img')]
+    Promise.all(images.map(img => img.complete ? Promise.resolve() : new Promise(resolve => { img.onload = resolve; img.onerror = resolve })))
+      .then(() => {
+        window.focus()
+        window.print()
+      })
+      .catch(() => window.print())
   }
 
   const categories = [...new Set(items.map(item => normalizeCategory(item.category)).filter(Boolean))].sort((a, b) => a.localeCompare(b))
