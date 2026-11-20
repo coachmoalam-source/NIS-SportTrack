@@ -1,14 +1,14 @@
 item_code,item_name,image_file,notes
 OT-PS-046736,Blower Balls,blower-pump.jpg,Electric ball inflator
 OT-PS-061038,Ladder,agility-ladder.jpg,Agility ladder
-OT-PS-129156,Pvc,training-poles.jpg,Confirm PVC item subtype before final assignment
+OT-PS-129156,Pvc,pvc.jpg,Generated PVC pipe reference image; confirm subtype
 OT-PS-137106,Massage roll,foam-roller.jpg,Foam massage roller
 OT-PS-187333,Water ball,volleyball.jpg,Confirm if this means a water-play ball
-OT-PS-231932,Resistance stick,training-poles.jpg,Provisional visual only; confirm item subtype
+OT-PS-231932,Resistance stick,resistance-stick.jpg,Generated resistance bar reference image; confirm exact equipment
 OT-PS-328570,Chess,chess-set.jpg,Chess set
 OT-PS-390079,بار حديد,barbell.jpg,Barbell
 OT-PS-800660,Step,fitness-step.jpg,Aerobic step
-OT-PS-946344,Life jackets,life-jacket.jpg,Life jacket
+OT-PS-946344,Life jackets,life-jackets.jpg,Life jacket
 S-PS-001,Swimming board,swimming-board.jpg,Swimming kickboard
 S-PS-002,Swimming shoulder,,Intentionally left without image pending identification
 T-OW-002,2سلم فتنس,agility-ladder.jpg,Same reference image as agility ladder
