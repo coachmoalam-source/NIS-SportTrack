@@ -30,7 +30,9 @@ const normalizeCategory = value => {
   if (/(fitness.*jump|jump.*rope|نط.*الحبل)/i.test(raw)) return 'Fitness & Jump Rope'
   if (/cross\s*fit|كروس\s*فيت/i.test(raw)) return 'CrossFit'
   return raw.replace(/\b\w/g, letter => letter.toUpperCase())
-}const SPORT_CODES = [
+}
+
+const SPORT_CODES = [
   { prefix: 'AF', words: ['american football', 'كرة القدم الأمريكية', 'امريكية'] },
   { prefix: 'HY', words: ['hyrox', 'هايروكس'] },
   { prefix: 'BA', words: ['badminton', 'بادمنتون', 'ريشة طائرة'] },
