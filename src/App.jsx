@@ -20,18 +20,17 @@ const normalizeCategory = value => {
     .normalize('NFKC')
     .trim()
     .toLowerCase()
-    .replace(/^category\\s*:\\s*/i, '')
+    .replace(/^category\s*:\s*/i, '')
     .replace(/[._-]+/g, ' ')
-    .replace(/\\s+/g, ' ')
+    .replace(/\s+/g, ' ')
   if (!raw) return ''
-  const compact = raw.replace(/\\s/g, '')
+  const compact = raw.replace(/\s/g, '')
   if (/(individual|single|فردي|فرديه|فردية)/i.test(raw) || compact.includes('العابفرد')) return 'Individual Games'
   if (/(group|team|جماعي|جماعيه|جماعية)/i.test(raw) || compact.includes('الالعابالجماعي')) return 'Group Games'
   if (/(fitness.*jump|jump.*rope|نط.*الحبل)/i.test(raw)) return 'Fitness & Jump Rope'
-  if (/cross\\s*fit|كروس\\s*فيت/i.test(raw)) return 'CrossFit'
-  return raw.replace(/\\b\\w/g, letter => letter.toUpperCase())
-}
-const SPORT_CODES = [
+  if (/cross\s*fit|كروس\s*فيت/i.test(raw)) return 'CrossFit'
+  return raw.replace(/\b\w/g, letter => letter.toUpperCase())
+}const SPORT_CODES = [
   { prefix: 'AF', words: ['american football', 'كرة القدم الأمريكية', 'امريكية'] },
   { prefix: 'HY', words: ['hyrox', 'هايروكس'] },
   { prefix: 'BA', words: ['badminton', 'بادمنتون', 'ريشة طائرة'] },
